@@ -12,7 +12,9 @@ import app.wio.security.TestJwtTokenUtil;
 import app.wio.service.CompanyService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
+
 import static org.mockito.Mockito.*;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.test.context.TestPropertySource;
@@ -51,7 +53,6 @@ public class CompanyControllerTest {
     @Autowired
     private TestJwtTokenUtil testJwtTokenUtil;
 
-    // Removed the @MockBean for JwtTokenProvider to use the actual bean
 
     @Test
     public void testCreateCompany() throws Exception {
@@ -89,5 +90,5 @@ public class CompanyControllerTest {
                 .andExpect(jsonPath("$.name").value("Test Company"));
     }
 
-    // Include other test methods with similar adjustments
+
 }

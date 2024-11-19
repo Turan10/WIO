@@ -12,7 +12,9 @@ import app.wio.security.TestJwtTokenUtil;
 import app.wio.service.BookingService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
+
 import static org.mockito.Mockito.*;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -51,9 +53,6 @@ public class BookingControllerTest {
     @Autowired
     private TestJwtTokenUtil testJwtTokenUtil;
 
-    // Remove the @MockBean for JwtTokenProvider to use the actual bean
-    // @MockBean
-    // private JwtTokenProvider jwtTokenProvider;
 
     @Test
     public void testCreateBooking() throws Exception {
@@ -68,15 +67,15 @@ public class BookingControllerTest {
 
         when(bookingService.createBooking(any(BookingDto.class))).thenReturn(booking);
 
-        // Create a User entity with EMPLOYEE role
+        // User entity with EMPLOYEE role
         User user = new User();
         user.setId(1L);
         user.setRole(UserRole.EMPLOYEE);
 
-        // Generate JWT token
+
         String token = testJwtTokenUtil.generateToken(user);
 
-        // Mock UserRepository behavior if necessary
+        // UserRepository Mock
         when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
 
         mockMvc.perform(post("/api/bookings/create")
@@ -93,15 +92,15 @@ public class BookingControllerTest {
         Long bookingId = 1L;
         doNothing().when(bookingService).cancelBooking(bookingId);
 
-        // Create a User entity with EMPLOYEE role
+        // User entity with EMPLOYEE role
         User user = new User();
         user.setId(1L);
         user.setRole(UserRole.EMPLOYEE);
 
-        // Generate JWT token
+
         String token = testJwtTokenUtil.generateToken(user);
 
-        // Mock UserRepository behavior if necessary
+        // UserRepository Mock
         when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
 
         mockMvc.perform(post("/api/bookings/cancel/{id}", bookingId)
@@ -120,15 +119,15 @@ public class BookingControllerTest {
         when(bookingService.getBookingsByUserId(userId))
                 .thenReturn(Collections.singletonList(booking));
 
-        // Create a User entity with EMPLOYEE role
+        // User entity with EMPLOYEE role
         User user = new User();
         user.setId(userId);
         user.setRole(UserRole.EMPLOYEE);
 
-        // Generate JWT token
+
         String token = testJwtTokenUtil.generateToken(user);
 
-        // Mock UserRepository behavior if necessary
+        // UserRepository Mock
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
 
         mockMvc.perform(get("/api/bookings/user/" + userId)
