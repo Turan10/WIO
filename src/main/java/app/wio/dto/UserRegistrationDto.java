@@ -8,6 +8,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UserRegistrationDto {
+
     @NotBlank(message = "Name is required.")
     private String name;
 

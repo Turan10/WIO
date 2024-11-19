@@ -14,6 +14,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
+
 import java.io.IOException;
 import java.util.Collections;
 
@@ -41,7 +42,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 User user = userRepository.findById(userId).orElse(null);
 
                 if (user != null) {
-                    // Create CustomUserDetails
+                    // Create CustomUserDetails object
                     CustomUserDetails userDetails = new CustomUserDetails(
                             user.getId(),
                             user.getEmail(),
@@ -60,7 +61,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
 
         } catch (Exception ex) {
-            // Log exception if needed
             logger.error("Could not set user authentication in security context", ex);
         }
 

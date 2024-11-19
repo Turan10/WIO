@@ -11,7 +11,9 @@ import app.wio.security.TestJwtTokenUtil;
 import app.wio.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
+
 import static org.mockito.Mockito.*;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.test.context.TestPropertySource;
@@ -49,7 +51,6 @@ public class UserControllerTest {
     @Autowired
     private TestJwtTokenUtil testJwtTokenUtil;
 
-    // Removed the @MockBean for JwtTokenProvider to use the actual bean
 
     @Test
     public void testRegisterUser() throws Exception {
@@ -86,15 +87,15 @@ public class UserControllerTest {
 
         when(userService.getUserById(userId)).thenReturn(responseDto);
 
-        // Create a User entity
+        // Create Employee user
         User user = new User();
         user.setId(userId);
         user.setRole(UserRole.EMPLOYEE);
 
-        // Generate JWT token
+
         String token = testJwtTokenUtil.generateToken(user);
 
-        // Mock UserRepository behavior
+        // UserRepository Mock
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
 
         mockMvc.perform(get("/api/users/{id}", userId)
@@ -104,5 +105,4 @@ public class UserControllerTest {
                 .andExpect(jsonPath("$.name").value("John Doe"));
     }
 
-    // Include other test methods with similar adjustments
 }

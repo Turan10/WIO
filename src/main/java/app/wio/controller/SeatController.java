@@ -50,7 +50,7 @@ public class SeatController {
         return ResponseEntity.noContent().build();
     }
 
-    // Endpoint to get available seats by floor and date
+
     @GetMapping("/available")
     public ResponseEntity<List<Seat>> getAvailableSeats(
             @RequestParam Long floorId,

@@ -12,7 +12,8 @@ import lombok.*;
 @AllArgsConstructor
 public class SeatDto {
 
-    private Long id;  // For updates
+    // This field is for updates
+    private Long id;
 
     @NotBlank(message = "Seat number is required.")
     private String seatNumber;

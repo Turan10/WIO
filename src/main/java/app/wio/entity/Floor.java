@@ -15,6 +15,7 @@ import java.util.List;
 @AllArgsConstructor
 @Table(name = "floors")
 public class Floor {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

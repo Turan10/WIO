@@ -31,7 +31,7 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
-    // Configure authentication manager if needed
+    // Authentication manager config
     @Bean
     public AuthenticationManager authenticationManager(
             AuthenticationConfiguration authConfig) throws Exception {
@@ -42,12 +42,12 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                // Disable CSRF protection since we're using JWTs
+                // CSRF disabled
                 .csrf(csrf -> csrf.disable())
                 // Handle unauthorized access
                 .exceptionHandling(exception -> exception
                         .authenticationEntryPoint(jwtAuthenticationEntryPoint))
-                // Make it stateless
+                // stateless session management
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 // Configure authorization rules
@@ -55,7 +55,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/users/register", "/api/users/login").permitAll()
                         .anyRequest().authenticated()
                 )
-                // Add JWT token filter
+                // JWT filter
                 .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

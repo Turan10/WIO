@@ -13,7 +13,9 @@ import app.wio.service.CompanyService;
 import app.wio.service.FloorService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
+
 import static org.mockito.Mockito.*;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.test.context.TestPropertySource;
@@ -53,7 +55,6 @@ public class FloorControllerTest {
     @Autowired
     private TestJwtTokenUtil testJwtTokenUtil;
 
-    // Removed the @MockBean for JwtTokenProvider to use the actual bean
 
     @Test
     public void testCreateFloor() throws Exception {
@@ -71,15 +72,15 @@ public class FloorControllerTest {
         when(floorService.getFloorByNameAndCompanyId(floorDto.getName(), floorDto.getCompanyId())).thenReturn(null);
         when(floorService.createFloor(any(Floor.class))).thenReturn(floor);
 
-        // Create an admin User entity
+        // Admin user
         User admin = new User();
         admin.setId(1L);
         admin.setRole(UserRole.ADMIN);
 
-        // Generate JWT token
+
         String token = testJwtTokenUtil.generateToken(admin);
 
-        // Mock UserRepository behavior
+        // UserRepository Mock
         when(userRepository.findById(admin.getId())).thenReturn(Optional.of(admin));
 
         mockMvc.perform(post("/api/floors/create")
@@ -91,5 +92,5 @@ public class FloorControllerTest {
                 .andExpect(jsonPath("$.name").value("Third Floor"));
     }
 
-    // Include other test methods with similar adjustments
+
 }

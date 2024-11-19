@@ -43,6 +43,7 @@ public class SeatService {
     }
 
     public Seat createSeat(Seat seat) {
+
         // Validate floor existence
         if (seat.getFloor() == null || !floorRepository.existsById(seat.getFloor().getId())) {
             throw new FloorNotFoundException("Floor not found.");
@@ -90,7 +91,7 @@ public class SeatService {
     }
 
     public List<Seat> getAvailableSeatsByFloorIdAndDate(Long floorId, LocalDate date) {
-        // Fetch all seats on the floor
+
         List<Seat> allSeats = seatRepository.findByFloorId(floorId);
 
         // Get IDs of seats that are booked on the given date

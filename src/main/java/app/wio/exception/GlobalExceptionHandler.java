@@ -9,36 +9,42 @@ import java.nio.file.AccessDeniedException;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    // Handle CompanyNotFoundException
     @ExceptionHandler(CompanyNotFoundException.class)
     public ResponseEntity<String> handleCompanyNotFoundException(
             CompanyNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
     }
 
+    // Handle UserAlreadyExistsException
     @ExceptionHandler(UserAlreadyExistsException.class)
     public ResponseEntity<String> handleUserAlreadyExistsException(
             UserAlreadyExistsException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(ex.getMessage());
     }
 
+    // Handle UserNotFoundException
     @ExceptionHandler(UserNotFoundException.class)
     public ResponseEntity<String> handleUserNotFoundException(
             UserNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
     }
 
+    // Handle InvalidCredentialsException
     @ExceptionHandler(InvalidCredentialsException.class)
     public ResponseEntity<String> handleInvalidCredentialsException(
             InvalidCredentialsException ex) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ex.getMessage());
     }
 
+    // Handle InvalidOldPasswordException
     @ExceptionHandler(InvalidOldPasswordException.class)
     public ResponseEntity<String> handleInvalidOldPasswordException(
             InvalidOldPasswordException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
     }
 
+    // Handle EmailAlreadyInUseException
     @ExceptionHandler(EmailAlreadyInUseException.class)
     public ResponseEntity<String> handleEmailAlreadyInUseException(
             EmailAlreadyInUseException ex) {
@@ -83,6 +89,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
     }
 
+    // Handle AccessDeniedException
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<String> handleAccessDeniedException(
             AccessDeniedException ex) {

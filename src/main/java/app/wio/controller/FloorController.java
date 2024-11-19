@@ -32,7 +32,7 @@ public class FloorController {
         // Retrieve the company
         Company company = companyService.getCompanyById(floorDto.getCompanyId());
 
-        // Check if a floor with the same name already exists for this company
+        // Check to see if a floor with the same name already exists for this company
         if (floorService.getFloorByNameAndCompanyId(floorDto.getName(), floorDto.getCompanyId()) != null) {
             throw new IllegalArgumentException("A floor with the same name already exists for this company.");
         }

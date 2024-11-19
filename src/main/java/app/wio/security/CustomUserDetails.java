@@ -2,6 +2,7 @@ package app.wio.security;
 
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
+
 import java.util.Collection;
 
 public class CustomUserDetails implements UserDetails {
@@ -29,22 +30,22 @@ public class CustomUserDetails implements UserDetails {
 
     @Override
     public boolean isAccountNonExpired() {
-        return true;  // Modify as per your requirements
+        return true;
     }
 
     @Override
     public boolean isAccountNonLocked() {
-        return true;  // Modify as per your requirements
+        return true;
     }
 
     @Override
     public boolean isCredentialsNonExpired() {
-        return true;  // Modify as per your requirements
+        return true;
     }
 
     @Override
     public boolean isEnabled() {
-        return true;  // Modify as per your requirements
+        return true;
     }
 
     @Override

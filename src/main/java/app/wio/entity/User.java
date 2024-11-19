@@ -32,7 +32,8 @@ public class User {
     @Email(message = "Invalid email format.")
     private String email;
 
-    @JsonIgnore  // Prevent password from being serialized in API responses
+    //Json ignore is used to hide the password from the response
+    @JsonIgnore
     @NotBlank(message = "Password is required.")
     @Size(min = 6, message = "Password must be at least 6 characters long.")
     private String password;

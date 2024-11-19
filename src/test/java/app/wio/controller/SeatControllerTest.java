@@ -12,7 +12,9 @@ import app.wio.security.TestJwtTokenUtil;
 import app.wio.service.SeatService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
+
 import static org.mockito.Mockito.*;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.test.context.TestPropertySource;
@@ -49,7 +51,6 @@ public class SeatControllerTest {
     @Autowired
     private TestJwtTokenUtil testJwtTokenUtil;
 
-    // Removed the @MockBean for JwtTokenProvider to use the actual bean
 
     @Test
     public void testCreateSeat() throws Exception {
@@ -65,15 +66,15 @@ public class SeatControllerTest {
 
         when(seatService.createSeat(any(Seat.class))).thenReturn(seat);
 
-        // Create an admin User entity
+        // Admin user
         User admin = new User();
         admin.setId(1L);
         admin.setRole(UserRole.ADMIN);
 
-        // Generate JWT token
+
         String token = testJwtTokenUtil.generateToken(admin);
 
-        // Mock UserRepository behavior
+        // UserRepository Mock
         when(userRepository.findById(admin.getId())).thenReturn(Optional.of(admin));
 
         mockMvc.perform(post("/api/seats/create")
@@ -85,5 +86,4 @@ public class SeatControllerTest {
                 .andExpect(jsonPath("$.seatNumber").value("A1"));
     }
 
-    // Include other test methods with similar adjustments
 }

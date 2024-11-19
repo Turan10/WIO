@@ -27,13 +27,14 @@ public class BookingService {
         this.userRepository = userRepository;
     }
 
-    // Method to get all bookings by a specific user
+    // Get all bookings by user ID
     public List<Booking> getBookingsByUserId(Long userId) {
         return bookingRepository.findByUserId(userId);
     }
 
     // Create a new booking
     public Booking createBooking(BookingDto bookingDto) {
+
         // Check if seat exists
         Seat seat = seatRepository.findById(bookingDto.getSeatId())
                 .orElseThrow(() -> new SeatNotFoundException("Seat not found."));
