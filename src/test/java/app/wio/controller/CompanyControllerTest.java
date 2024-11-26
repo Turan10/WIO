@@ -1,38 +1,32 @@
 package app.wio.controller;
 
+import app.wio.controller.CompanyController;
+import app.wio.security.TestConfig;
 import app.wio.dto.CompanyCreationDto;
 import app.wio.entity.Company;
 import app.wio.entity.User;
-import app.wio.entity.UserRole;
-import app.wio.repository.UserRepository;
-import app.wio.security.JwtAuthenticationEntryPoint;
-import app.wio.security.JwtTokenProvider;
-import app.wio.security.SecurityConfig;
-import app.wio.security.TestJwtTokenUtil;
 import app.wio.service.CompanyService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
-
-import static org.mockito.Mockito.*;
-
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.test.context.TestPropertySource;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
-import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.*;
+import org.springframework.test.web.servlet.MockMvc;
 
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.Optional;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.mockito.ArgumentMatchers.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf; // Import csrf()
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(CompanyController.class)
-@Import({SecurityConfig.class, TestJwtTokenUtil.class, JwtTokenProvider.class})
-@TestPropertySource(locations = "classpath:application-test.properties")
+@Import(TestConfig.class)
 public class CompanyControllerTest {
 
     @Autowired
@@ -41,54 +35,77 @@ public class CompanyControllerTest {
     @MockBean
     private CompanyService companyService;
 
-    @MockBean
-    private JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
-
-    @MockBean
-    private UserRepository userRepository;
-
     @Autowired
     private ObjectMapper objectMapper;
 
-    @Autowired
-    private TestJwtTokenUtil testJwtTokenUtil;
-
-
     @Test
-    public void testCreateCompany() throws Exception {
-        CompanyCreationDto companyDto = new CompanyCreationDto();
-        companyDto.setName("Test Company");
-        companyDto.setAddress("123 Test St");
-        companyDto.setFloorCount(2);
-        companyDto.setFloorNames(Arrays.asList("First Floor", "Second Floor"));
-
+    @WithMockUser(roles = "ADMIN")
+    public void testCreateCompany_Success() throws Exception {
+        CompanyCreationDto companyDto = new CompanyCreationDto(
+                "Test Company", "123 Street", 3, Collections.singletonList("Floor 1"));
         Company company = new Company();
         company.setId(1L);
-        company.setName(companyDto.getName());
-        company.setAddress(companyDto.getAddress());
-        company.setFloors(Collections.emptyList());
+        company.setName("Test Company");
 
-        when(companyService.createCompany(any(Company.class))).thenReturn(company);
 
-        // Create an admin User entity
-        User admin = new User();
-        admin.setId(1L);
-        admin.setRole(UserRole.ADMIN);
-
-        // Generate JWT token
-        String token = testJwtTokenUtil.generateToken(admin);
-
-        // Mock UserRepository behavior
-        when(userRepository.findById(admin.getId())).thenReturn(Optional.of(admin));
+        Mockito.when(companyService.createCompany(any(CompanyCreationDto.class))).thenReturn(company);
 
         mockMvc.perform(post("/api/companies/create")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(companyDto))
-                        .header("Authorization", "Bearer " + token))
+                        .with(csrf()))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id").value(1L))
+                .andExpect(jsonPath("$.id").value(1))
                 .andExpect(jsonPath("$.name").value("Test Company"));
     }
 
+    @Test
+    @WithAnonymousUser
+    public void testCreateCompany_Unauthorized() throws Exception {
+        CompanyCreationDto companyDto = new CompanyCreationDto(
+                "Test Company", "123 Street", 3, Collections.singletonList("Floor 1"));
 
+        mockMvc.perform(post("/api/companies/create")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(companyDto))
+                        .with(csrf()))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @WithMockUser
+    public void testGetCompanyById() throws Exception {
+        Company company = new Company();
+        company.setId(1L);
+        company.setName("Test Company");
+
+        Mockito.when(companyService.getCompanyById(1L)).thenReturn(company);
+
+        mockMvc.perform(get("/api/companies/1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.name").value("Test Company"));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    public void testGetUsersByCompanyId() throws Exception {
+        User user = new User();
+        user.setId(1L);
+        user.setName("John Doe");
+
+        Mockito.when(companyService.getUsersByCompanyId(1L)).thenReturn(Collections.singletonList(user));
+
+        mockMvc.perform(get("/api/companies/1/users"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(1))
+                .andExpect(jsonPath("$[0].name").value("John Doe"));
+    }
+
+    @Test
+    @WithAnonymousUser
+    public void testGetUsersByCompanyId_Unauthorized() throws Exception {
+        mockMvc.perform(get("/api/companies/1/users"))
+                .andExpect(status().isUnauthorized());
+    }
 }

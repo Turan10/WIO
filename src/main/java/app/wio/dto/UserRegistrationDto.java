@@ -1,3 +1,4 @@
+
 package app.wio.dto;
 
 import jakarta.validation.constraints.*;
@@ -18,8 +19,10 @@ public class UserRegistrationDto {
 
     @NotBlank(message = "Password is required.")
     @Size(min = 6, message = "Password must be at least 6 characters long.")
+    @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).+$",
+            message = "Password must contain at least one uppercase letter, one lowercase letter, and one digit.")
     private String password;
 
-    @NotNull(message = "Company ID is required.")
-    private Long companyId;
+    @NotBlank(message = "Invite token is required.")
+    private String inviteToken;
 }

@@ -14,19 +14,15 @@ import java.util.Date;
 
 @Component
 public class JwtTokenProvider {
-    //logger
     private static final Logger logger = LoggerFactory.getLogger(JwtTokenProvider.class);
 
+    private final Key key;
+    private final long jwtExpirationInMs;
 
-    @Value("${app.jwt.secret}")
-    private String jwtSecret;
-
-    @Value("${app.jwt.expiration-milliseconds}")
-    private long jwtExpirationInMs;
-
-    private Key getSigningKey() {
-        byte[] keyBytes = Decoders.BASE64.decode(jwtSecret);
-        return Keys.hmacShaKeyFor(keyBytes);
+    public JwtTokenProvider(@Value("${app.jwt.secret}") String jwtSecret,
+                            @Value("${app.jwt.expiration-milliseconds}") long jwtExpirationInMs) {
+        this.key = Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtSecret));
+        this.jwtExpirationInMs = jwtExpirationInMs;
     }
 
     // Generate token
@@ -39,14 +35,14 @@ public class JwtTokenProvider {
                 .claim("role", user.getRole().name())
                 .setIssuedAt(now)
                 .setExpiration(expiryDate)
-                .signWith(getSigningKey(), SignatureAlgorithm.HS512)
+                .signWith(key, SignatureAlgorithm.HS512)
                 .compact();
     }
 
     // Get user ID from token
     public Long getUserIdFromJWT(String token) {
         Claims claims = Jwts.parserBuilder()
-                .setSigningKey(getSigningKey())
+                .setSigningKey(key)
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
@@ -58,12 +54,12 @@ public class JwtTokenProvider {
     public boolean validateToken(String authToken) {
         try {
             Jwts.parserBuilder()
-                    .setSigningKey(getSigningKey())
+                    .setSigningKey(key)
                     .build()
                     .parseClaimsJws(authToken);
             return true;
         } catch (JwtException ex) {
-            logger.error("Invalid JWT token");
+            logger.error("Invalid JWT token: {}", ex.getMessage());
         }
         return false;
     }

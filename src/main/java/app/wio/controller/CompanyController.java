@@ -2,7 +2,6 @@ package app.wio.controller;
 
 import app.wio.dto.CompanyCreationDto;
 import app.wio.entity.Company;
-import app.wio.entity.Floor;
 import app.wio.entity.User;
 import app.wio.service.CompanyService;
 import jakarta.validation.Valid;
@@ -11,7 +10,6 @@ import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -29,26 +27,8 @@ public class CompanyController {
     @PostMapping("/create")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Company> createCompany(@Valid @RequestBody CompanyCreationDto companyDto) {
-        if (companyDto.getFloorNames().size() != companyDto.getFloorCount()) {
-            throw new IllegalArgumentException("The number of floor names must match the floor count.");
-        }
-
-        Company company = new Company();
-        company.setName(companyDto.getName());
-        company.setAddress(companyDto.getAddress());
-
-        List<Floor> floorList = new ArrayList<>();
-        for (int i = 0; i < companyDto.getFloorCount(); i++) {
-            Floor floor = new Floor();
-            floor.setFloorNumber(i + 1);
-            floor.setName(companyDto.getFloorNames().get(i));
-            floor.setCompany(company);
-            floorList.add(floor);
-        }
-        company.setFloors(floorList);
-
-        Company savedCompany = companyService.createCompany(company);
-        return ResponseEntity.status(HttpStatus.CREATED).body(savedCompany);
+        Company company = companyService.createCompany(companyDto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(company);
     }
 
     // Get company by ID

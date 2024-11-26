@@ -31,5 +31,6 @@ public class Seat {
     @JoinColumn(name = "floor_id")
     private Floor floor;
 
-
+    @Version
+    private Integer version;
 }

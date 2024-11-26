@@ -12,7 +12,5 @@ public class UserResponseDto {
     private String name;
     private String email;
     private UserRole role;
-
-    // JWT token
     private String token;
 }

@@ -1,7 +1,6 @@
 package app.wio.controller;
 
 import app.wio.dto.FloorCreationDto;
-import app.wio.entity.Company;
 import app.wio.entity.Floor;
 import app.wio.service.CompanyService;
 import app.wio.service.FloorService;
@@ -18,32 +17,17 @@ import java.util.List;
 public class FloorController {
 
     private final FloorService floorService;
-    private final CompanyService companyService;
 
     @Autowired
-    public FloorController(FloorService floorService, CompanyService companyService) {
+    public FloorController(FloorService floorService) {
         this.floorService = floorService;
-        this.companyService = companyService;
     }
 
     @PostMapping("/create")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Floor> createFloor(@Valid @RequestBody FloorCreationDto floorDto) {
-        // Retrieve the company
-        Company company = companyService.getCompanyById(floorDto.getCompanyId());
-
-        // Check to see if a floor with the same name already exists for this company
-        if (floorService.getFloorByNameAndCompanyId(floorDto.getName(), floorDto.getCompanyId()) != null) {
-            throw new IllegalArgumentException("A floor with the same name already exists for this company.");
-        }
-
-        Floor floor = new Floor();
-        floor.setName(floorDto.getName());
-        floor.setFloorNumber(floorDto.getFloorNumber());
-        floor.setCompany(company);
-
-        Floor savedFloor = floorService.createFloor(floor);
-        return ResponseEntity.status(HttpStatus.CREATED).body(savedFloor);
+        Floor floor = floorService.createFloor(floorDto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(floor);
     }
 
     // Delete floor by id (Admin only)

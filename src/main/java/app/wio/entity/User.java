@@ -32,7 +32,6 @@ public class User {
     @Email(message = "Invalid email format.")
     private String email;
 
-    //Json ignore is used to hide the password from the response
     @JsonIgnore
     @NotBlank(message = "Password is required.")
     @Size(min = 6, message = "Password must be at least 6 characters long.")
@@ -47,4 +46,14 @@ public class User {
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     private List<Booking> bookings;
+
+    private boolean enabled;
+
+    @JsonIgnore
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    private List<VerificationToken> verificationTokens;
+
+    @JsonIgnore
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    private List<PasswordResetToken> passwordResetTokens;
 }

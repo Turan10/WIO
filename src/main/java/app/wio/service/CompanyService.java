@@ -1,5 +1,6 @@
 package app.wio.service;
 
+import app.wio.dto.CompanyCreationDto;
 import app.wio.entity.Company;
 import app.wio.entity.User;
 import app.wio.exception.CompanyNotFoundException;
@@ -19,7 +20,12 @@ public class CompanyService {
         this.companyRepository = companyRepository;
     }
 
-    public Company createCompany(Company company) {
+    public Company createCompany(CompanyCreationDto companyDto) {
+        // Map CompanyCreationDto to Company entity
+        Company company = new Company();
+        company.setName(companyDto.getName());
+        company.setAddress(companyDto.getAddress());
+
         return companyRepository.save(company);
     }
 

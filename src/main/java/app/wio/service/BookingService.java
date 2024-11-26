@@ -8,6 +8,11 @@ import app.wio.repository.SeatRepository;
 import app.wio.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
@@ -28,11 +33,12 @@ public class BookingService {
     }
 
     // Get all bookings by user ID
-    public List<Booking> getBookingsByUserId(Long userId) {
-        return bookingRepository.findByUserId(userId);
+    public Page<Booking> getBookingsByUserId(Long userId, Pageable pageable) {
+        return bookingRepository.findByUserId(userId, pageable);
     }
 
     // Create a new booking
+    @Transactional
     public Booking createBooking(BookingDto bookingDto) {
 
         // Check if seat exists
@@ -56,7 +62,11 @@ public class BookingService {
         booking.setDate(bookingDto.getDate());
         booking.setStatus(BookingStatus.ACTIVE);
 
-        return bookingRepository.save(booking);
+        try {
+            return bookingRepository.save(booking);
+        } catch (ObjectOptimisticLockingFailureException e) {
+            throw new IllegalArgumentException("Seat is already booked by someone else.");
+        }
     }
 
     // Get booking by ID
@@ -70,5 +80,12 @@ public class BookingService {
         Booking booking = getBookingById(id);
         booking.setStatus(BookingStatus.CANCELLED);
         bookingRepository.save(booking);
+    }
+
+    // Check if the booking belongs to the user
+    public boolean isBookingOwner(Long bookingId, Long userId) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new BookingNotFoundException("Booking not found."));
+        return booking.getUser().getId().equals(userId);
     }
 }

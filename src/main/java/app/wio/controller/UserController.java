@@ -13,6 +13,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
+
     private final UserService userService;
 
     @Autowired
@@ -20,12 +21,19 @@ public class UserController {
         this.userService = userService;
     }
 
-    // Register a new user
+    // Register a new user with invite token
     @PostMapping("/register")
     public ResponseEntity<UserResponseDto> registerUser(
             @Valid @RequestBody UserRegistrationDto userDto) {
         UserResponseDto response = userService.registerUser(userDto);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    // Verify user email
+    @GetMapping("/verify")
+    public ResponseEntity<String> verifyUser(@RequestParam String token) {
+        userService.verifyUser(token);
+        return ResponseEntity.ok("User verified successfully.");
     }
 
     // Authenticate user (login)
@@ -78,5 +86,21 @@ public class UserController {
     public ResponseEntity<List<UserResponseDto>> getAllUsers() {
         List<UserResponseDto> users = userService.getAllUsers();
         return ResponseEntity.ok(users);
+    }
+
+    // Initiate password reset
+    @PostMapping("/password-reset/initiate")
+    public ResponseEntity<String> initiatePasswordReset(@RequestParam String email) {
+        userService.initiatePasswordReset(email);
+        return ResponseEntity.ok("Password reset email sent.");
+    }
+
+    // Complete password reset
+    @PostMapping("/password-reset/complete")
+    public ResponseEntity<String> resetPassword(
+            @RequestParam String token,
+            @RequestParam String newPassword) {
+        userService.resetPassword(token, newPassword);
+        return ResponseEntity.ok("Password reset successful.");
     }
 }

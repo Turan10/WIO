@@ -1,5 +1,6 @@
 package app.wio.service;
 
+import app.wio.dto.FloorCreationDto;
 import app.wio.entity.Company;
 import app.wio.entity.Floor;
 import app.wio.exception.CompanyNotFoundException;
@@ -23,7 +24,17 @@ public class FloorService {
         this.companyRepository = companyRepository;
     }
 
-    public Floor createFloor(Floor floor) {
+    public Floor createFloor(FloorCreationDto floorDto) {
+        // Map FloorCreationDto to Floor entity
+        Floor floor = new Floor();
+        floor.setName(floorDto.getName());
+        floor.setFloorNumber(floorDto.getFloorNumber());
+
+        // Fetch the company
+        Company company = companyRepository.findById(floorDto.getCompanyId())
+                .orElseThrow(() -> new CompanyNotFoundException("Company not found."));
+        floor.setCompany(company);
+
         return floorRepository.save(floor);
     }
 

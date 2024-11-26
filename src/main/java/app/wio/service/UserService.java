@@ -8,6 +8,7 @@ import app.wio.security.JwtTokenProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -16,48 +17,79 @@ import java.util.stream.Collectors;
 public class UserService {
 
     private final UserRepository userRepository;
-    private final CompanyRepository companyRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
+    private final InviteService inviteService;
+    private final VerificationTokenRepository tokenRepository;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
+    private final EmailService emailService;
 
     @Autowired
     public UserService(UserRepository userRepository,
-                       CompanyRepository companyRepository,
                        PasswordEncoder passwordEncoder,
-                       JwtTokenProvider jwtTokenProvider) {
+                       JwtTokenProvider jwtTokenProvider,
+                       InviteService inviteService,
+                       VerificationTokenRepository tokenRepository,
+                       PasswordResetTokenRepository passwordResetTokenRepository,
+                       EmailService emailService) {
         this.userRepository = userRepository;
-        this.companyRepository = companyRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtTokenProvider = jwtTokenProvider;
+        this.inviteService = inviteService;
+        this.tokenRepository = tokenRepository;
+        this.passwordResetTokenRepository = passwordResetTokenRepository;
+        this.emailService = emailService;
     }
 
-    // Register a new user
+    // Register a new user with invite token
     public UserResponseDto registerUser(UserRegistrationDto userDto) {
         if (userRepository.existsByEmail(userDto.getEmail())) {
             throw new UserAlreadyExistsException("Email already exists.");
         }
 
-        Company company = companyRepository.findById(userDto.getCompanyId())
-                .orElseThrow(() -> new CompanyNotFoundException("Company not found."));
+        Invite invite = inviteService.getInviteByToken(userDto.getInviteToken());
 
         User user = new User();
         user.setName(userDto.getName());
         user.setEmail(userDto.getEmail());
         user.setPassword(passwordEncoder.encode(userDto.getPassword()));
         user.setRole(UserRole.EMPLOYEE);
-        user.setCompany(company);
+        user.setCompany(invite.getCompany());
+        user.setEnabled(false); // User needs to verify email
 
         userRepository.save(user);
 
-        String token = jwtTokenProvider.generateToken(user);
+        // Create verification token
+        VerificationToken verificationToken = new VerificationToken(user, 24);
+        tokenRepository.save(verificationToken);
 
-        return mapToUserResponseDto(user, token);
+        // Send verification email
+        emailService.sendVerificationEmail(user, verificationToken.getToken());
+
+        return mapToUserResponseDto(user, null);
     }
 
-    // Authenticate a user (login)
+    // Verify user email
+    @Transactional
+    public void verifyUser(String token) {
+        VerificationToken verificationToken = tokenRepository.findByToken(token)
+                .orElseThrow(() -> new InvalidTokenException("Invalid or expired verification token."));
+
+        User user = verificationToken.getUser();
+        user.setEnabled(true);
+        userRepository.save(user);
+
+        // Clean up token
+        tokenRepository.delete(verificationToken);
+    }
+
     public UserResponseDto authenticateUser(String email, String password) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new InvalidCredentialsException("Invalid email or password."));
+
+        if (!user.isEnabled()) {
+            throw new InvalidCredentialsException("Please verify your email before logging in.");
+        }
 
         if (!passwordEncoder.matches(password, user.getPassword())) {
             throw new InvalidCredentialsException("Invalid email or password.");
@@ -122,6 +154,32 @@ public class UserService {
         return users.stream()
                 .map(user -> mapToUserResponseDto(user, null))
                 .collect(Collectors.toList());
+    }
+
+    // Initiate password reset
+    public void initiatePasswordReset(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("User not found."));
+
+        PasswordResetToken resetToken = new PasswordResetToken(user, 1); // 1 hour expiry
+        passwordResetTokenRepository.save(resetToken);
+
+        // Send password reset email
+        emailService.sendPasswordResetEmail(user, resetToken.getToken());
+    }
+
+    // Reset password
+    @Transactional
+    public void resetPassword(String token, String newPassword) {
+        PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(token)
+                .orElseThrow(() -> new InvalidTokenException("Invalid or expired password reset token."));
+
+        User user = resetToken.getUser();
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+
+        // Clean up token
+        passwordResetTokenRepository.delete(resetToken);
     }
 
     // Helper method to map User to UserResponseDto
