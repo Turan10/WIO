@@ -87,11 +87,16 @@ public class UserService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new InvalidCredentialsException("Invalid email or password."));
 
+        // Debugging statements
+        System.out.println("DB PASS: " + user.getPassword());
+        boolean match = passwordEncoder.matches(password, user.getPassword());
+        System.out.println("MATCH: " + match);
+
         if (!user.isEnabled()) {
             throw new InvalidCredentialsException("Please verify your email before logging in.");
         }
 
-        if (!passwordEncoder.matches(password, user.getPassword())) {
+        if (!match) {
             throw new InvalidCredentialsException("Invalid email or password.");
         }
 
@@ -99,6 +104,7 @@ public class UserService {
 
         return mapToUserResponseDto(user, token);
     }
+
 
     // Get a user by ID
     public UserResponseDto getUserById(Long id) {
