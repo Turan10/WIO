@@ -1,6 +1,7 @@
 package app.wio.dto;
 
-import jakarta.validation.constraints.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.*;
 
 @Getter
@@ -8,6 +9,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ChangePasswordDto {
+
     @NotBlank(message = "Old password is required.")
     private String oldPassword;
 

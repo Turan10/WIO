@@ -2,9 +2,9 @@ package app.wio.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-
 import java.time.LocalDateTime;
 import java.util.UUID;
+
 
 @Entity
 @Getter
@@ -17,12 +17,14 @@ public class VerificationToken {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(unique = true, nullable = false)
     private String token;
 
+    @Column(nullable = false)
     private LocalDateTime expiryDate;
 
     @ManyToOne
-    @JoinColumn(name = "user_id")
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
     public VerificationToken(User user, int expirationInHours) {

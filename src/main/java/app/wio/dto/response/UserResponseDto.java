@@ -1,4 +1,6 @@
-package app.wio.dto;
+// package app.wio.dto.response;
+
+package app.wio.dto.response;
 
 import app.wio.entity.UserRole;
 import lombok.*;
@@ -13,4 +15,10 @@ public class UserResponseDto {
     private String email;
     private UserRole role;
     private String token;
+    private Long companyId;
+    private String companyName;
+    private String title;
+    private String department;
+    private String phone;
+    private String avatar;
 }

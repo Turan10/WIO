@@ -11,5 +11,4 @@ public class WioApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(WioApplication.class, args);
 	}
-
 }

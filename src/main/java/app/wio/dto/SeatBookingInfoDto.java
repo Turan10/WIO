@@ -7,8 +7,12 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 public class SeatBookingInfoDto {
-    private Long seatId;
+
+    private Long id;
     private String seatNumber;
-    private String userName;
-    private boolean isBooked;
+    private Double xCoordinate;
+    private Double yCoordinate;
+    private Integer angle;
+    private boolean booked;
+    private String occupantName;
 }

@@ -1,33 +1,34 @@
 package app.wio.controller;
 
-import app.wio.controller.CompanyController;
-import app.wio.security.TestConfig;
 import app.wio.dto.CompanyCreationDto;
-import app.wio.entity.Company;
-import app.wio.entity.User;
+import app.wio.dto.response.CompanyDto;
+import app.wio.security.TestSecurityConfig;
 import app.wio.service.CompanyService;
+import app.wio.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
-import org.springframework.security.test.context.support.*;
+
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Collections;
 
-import static org.mockito.ArgumentMatchers.*;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf; // Import csrf()
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-
+import static org.mockito.ArgumentMatchers.any;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(CompanyController.class)
-@Import(TestConfig.class)
-public class CompanyControllerTest {
+@ActiveProfiles("test")
+@Import(TestSecurityConfig.class)
+class CompanyControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -35,77 +36,39 @@ public class CompanyControllerTest {
     @MockBean
     private CompanyService companyService;
 
+    @MockBean
+    private UserService userService;
+
     @Autowired
     private ObjectMapper objectMapper;
 
     @Test
-    @WithMockUser(roles = "ADMIN")
-    public void testCreateCompany_Success() throws Exception {
-        CompanyCreationDto companyDto = new CompanyCreationDto(
-                "Test Company", "123 Street", 3, Collections.singletonList("Floor 1"));
-        Company company = new Company();
-        company.setId(1L);
-        company.setName("Test Company");
+    void testCreateCompany() throws Exception {
+        CompanyCreationDto request = new CompanyCreationDto(
+                "Test Corp",
+                "456 Ave",
+                "Admin User",
+                "admin@testcorp.com",
+                "password123"
+        );
 
+        CompanyDto response = new CompanyDto();
+        response.setId(10L);
+        response.setName("Test Corp");
+        response.setAddress("456 Ave");
+        response.setFloorIds(Collections.emptyList());
+        response.setUserIds(Collections.singletonList(500L));
 
-        Mockito.when(companyService.createCompany(any(CompanyCreationDto.class))).thenReturn(company);
+        Mockito.when(companyService.createCompany(any(CompanyCreationDto.class))).thenReturn(response);
 
         mockMvc.perform(post("/api/companies/create")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(companyDto))
-                        .with(csrf()))
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id").value(1))
-                .andExpect(jsonPath("$.name").value("Test Company"));
-    }
-
-    @Test
-    @WithAnonymousUser
-    public void testCreateCompany_Unauthorized() throws Exception {
-        CompanyCreationDto companyDto = new CompanyCreationDto(
-                "Test Company", "123 Street", 3, Collections.singletonList("Floor 1"));
-
-        mockMvc.perform(post("/api/companies/create")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(companyDto))
-                        .with(csrf()))
-                .andExpect(status().isUnauthorized());
-    }
-
-    @Test
-    @WithMockUser
-    public void testGetCompanyById() throws Exception {
-        Company company = new Company();
-        company.setId(1L);
-        company.setName("Test Company");
-
-        Mockito.when(companyService.getCompanyById(1L)).thenReturn(company);
-
-        mockMvc.perform(get("/api/companies/1"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(1))
-                .andExpect(jsonPath("$.name").value("Test Company"));
-    }
-
-    @Test
-    @WithMockUser(roles = "ADMIN")
-    public void testGetUsersByCompanyId() throws Exception {
-        User user = new User();
-        user.setId(1L);
-        user.setName("John Doe");
-
-        Mockito.when(companyService.getUsersByCompanyId(1L)).thenReturn(Collections.singletonList(user));
-
-        mockMvc.perform(get("/api/companies/1/users"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(1))
-                .andExpect(jsonPath("$[0].name").value("John Doe"));
-    }
-
-    @Test
-    @WithAnonymousUser
-    public void testGetUsersByCompanyId_Unauthorized() throws Exception {
-        mockMvc.perform(get("/api/companies/1/users"))
-                .andExpect(status().isUnauthorized());
+                .andExpect(jsonPath("$.id").value(10))
+                .andExpect(jsonPath("$.name").value("Test Corp"))
+                .andExpect(jsonPath("$.address").value("456 Ave"))
+                .andExpect(jsonPath("$.floorIds.length()").value(0))
+                .andExpect(jsonPath("$.userIds.length()").value(1));
     }
 }

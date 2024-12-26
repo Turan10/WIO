@@ -1,34 +1,61 @@
 package app.wio.service;
 
-import app.wio.repository.InviteRepository;
+import app.wio.entity.Share;
 import app.wio.repository.PasswordResetTokenRepository;
+import app.wio.repository.ShareRepository;
 import app.wio.repository.VerificationTokenRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
+
 
 @Component
 public class ScheduledTasks {
 
     private final VerificationTokenRepository verificationTokenRepository;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
-    private final InviteRepository inviteRepository;
+    private final ShareRepository shareRepository;
 
     @Autowired
-    public ScheduledTasks(VerificationTokenRepository verificationTokenRepository,
-                          PasswordResetTokenRepository passwordResetTokenRepository,
-                          InviteRepository inviteRepository) {
+    public ScheduledTasks(
+            VerificationTokenRepository verificationTokenRepository,
+            PasswordResetTokenRepository passwordResetTokenRepository,
+            ShareRepository shareRepository
+    ) {
         this.verificationTokenRepository = verificationTokenRepository;
         this.passwordResetTokenRepository = passwordResetTokenRepository;
-        this.inviteRepository = inviteRepository;
+        this.shareRepository = shareRepository;
     }
 
-    @Scheduled(cron = "0 0 * * * *") // Runs every hour
-    public void cleanUpExpiredTokens() {
-        verificationTokenRepository.deleteByExpiryDateBefore(LocalDateTime.now());
-        passwordResetTokenRepository.deleteByExpiryDateBefore(LocalDateTime.now());
-        inviteRepository.deleteByExpiryDateBefore(LocalDateTime.now());
+
+    @Scheduled(cron = "0 0 * * * *")
+    public void cleanUpExpiredTokensAndShares() {
+        LocalDateTime now = LocalDateTime.now();
+        verificationTokenRepository.deleteByExpiryDateBefore(now);
+        passwordResetTokenRepository.deleteByExpiryDateBefore(now);
+
+        cleanUpExpiredShares();
+    }
+
+    private void cleanUpExpiredShares() {
+        LocalDate today = LocalDate.now();
+        List<Share> allShares = shareRepository.findAll();
+
+        List<Share> expiredShares = allShares.stream()
+                .filter(s -> s.getMaxBookingDate() != null)
+                .filter(s -> {
+                    LocalDate cutoff = s.getMaxBookingDate().plusDays(30);
+                    return today.isAfter(cutoff);
+                })
+                .collect(Collectors.toList());
+
+        if (!expiredShares.isEmpty()) {
+            shareRepository.deleteAllInBatch(expiredShares);
+        }
     }
 }

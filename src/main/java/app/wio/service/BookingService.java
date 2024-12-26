@@ -1,20 +1,18 @@
 package app.wio.service;
 
-import app.wio.dto.BookingDto;
+import app.wio.dto.request.BookingRequestDto;
+import app.wio.dto.response.BookingResponseDto;
 import app.wio.entity.*;
 import app.wio.exception.*;
+import app.wio.mapper.BookingMapper;
 import app.wio.repository.BookingRepository;
 import app.wio.repository.SeatRepository;
 import app.wio.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.*;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.orm.ObjectOptimisticLockingFailureException;
-
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-
-import java.util.List;
 
 @Service
 public class BookingService {
@@ -22,70 +20,84 @@ public class BookingService {
     private final BookingRepository bookingRepository;
     private final SeatRepository seatRepository;
     private final UserRepository userRepository;
+    private final BookingMapper bookingMapper;
 
     @Autowired
-    public BookingService(BookingRepository bookingRepository,
-                          SeatRepository seatRepository,
-                          UserRepository userRepository) {
+    public BookingService(
+            BookingRepository bookingRepository,
+            SeatRepository seatRepository,
+            UserRepository userRepository,
+            BookingMapper bookingMapper
+    ) {
         this.bookingRepository = bookingRepository;
         this.seatRepository = seatRepository;
         this.userRepository = userRepository;
+        this.bookingMapper = bookingMapper;
     }
 
-    // Get all bookings by user ID
-    public Page<Booking> getBookingsByUserId(Long userId, Pageable pageable) {
-        return bookingRepository.findByUserId(userId, pageable);
+    public Page<BookingResponseDto> getBookingsByUserId(Long userId, Pageable pageable) {
+        Page<Booking> bookings = bookingRepository.findByUserId(userId, pageable);
+        return bookings.map(bookingMapper::toDto);
     }
 
-    // Create a new booking
     @Transactional
-    public Booking createBooking(BookingDto bookingDto) {
+    public BookingResponseDto createBooking(BookingRequestDto dto) {
+        Seat seat = seatRepository.findById(dto.getSeatId())
+                .orElseThrow(() -> new SeatNotFoundException("Seat with ID " + dto.getSeatId() + " not found."));
 
-        // Check if seat exists
-        Seat seat = seatRepository.findById(bookingDto.getSeatId())
-                .orElseThrow(() -> new SeatNotFoundException("Seat not found."));
+        User user = userRepository.findById(dto.getUserId())
+                .orElseThrow(() -> new UserNotFoundException("User with ID " + dto.getUserId() + " not found."));
 
-        // Check if user exists
-        User user = userRepository.findById(bookingDto.getUserId())
-                .orElseThrow(() -> new UserNotFoundException("User not found."));
 
-        // Check if seat is available on the given date
-        if (bookingRepository.findBySeatIdAndDate(seat.getId(), bookingDto.getDate())
-                .stream()
-                .anyMatch(booking -> booking.getStatus() == BookingStatus.ACTIVE)) {
-            throw new IllegalArgumentException("Seat is already booked on this date.");
+        boolean hasExistingBooking = bookingRepository.existsByUserIdAndDate(user.getId(), dto.getDate());
+        if (hasExistingBooking) {
+            throw new DuplicateBookingException("You have already booked a seat for this date.");
         }
 
-        Booking booking = new Booking();
+        boolean isSeatBooked = bookingRepository
+                .findBySeatIdAndDate(seat.getId(), dto.getDate())
+                .stream()
+                .anyMatch(b -> b.getStatus() == BookingStatus.ACTIVE);
+
+        if (isSeatBooked) {
+            throw new SeatAlreadyBookedException("Seat is already booked on " + dto.getDate() + ".");
+        }
+
+        Booking booking = bookingMapper.toEntity(dto);
+        booking.setStatus(BookingStatus.ACTIVE);
         booking.setSeat(seat);
         booking.setUser(user);
-        booking.setDate(bookingDto.getDate());
-        booking.setStatus(BookingStatus.ACTIVE);
 
         try {
-            return bookingRepository.save(booking);
+            Booking saved = bookingRepository.save(booking);
+            return bookingMapper.toDto(saved);
         } catch (ObjectOptimisticLockingFailureException e) {
-            throw new IllegalArgumentException("Seat is already booked by someone else.");
+            throw new SeatAlreadyBookedException("Seat was concurrently booked by another user.");
         }
     }
 
-    // Get booking by ID
-    public Booking getBookingById(Long id) {
-        return bookingRepository.findById(id)
+    public BookingResponseDto getBookingById(Long id) {
+        Booking booking = bookingRepository.findById(id)
                 .orElseThrow(() -> new BookingNotFoundException("Booking with ID " + id + " not found."));
+        return bookingMapper.toDto(booking);
     }
 
-    // Cancel a booking
     public void cancelBooking(Long id) {
-        Booking booking = getBookingById(id);
+        Booking booking = bookingRepository.findById(id)
+                .orElseThrow(() -> new BookingNotFoundException("Booking with ID " + id + " not found."));
         booking.setStatus(BookingStatus.CANCELLED);
         bookingRepository.save(booking);
     }
 
-    // Check if the booking belongs to the user
     public boolean isBookingOwner(Long bookingId, Long userId) {
         Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new BookingNotFoundException("Booking not found."));
+                .orElseThrow(() ->
+                        new BookingNotFoundException("Booking with ID " + bookingId + " not found."));
         return booking.getUser().getId().equals(userId);
+    }
+
+    public Page<BookingResponseDto> findBookingsForUser(Long userId, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("date").descending());
+        return bookingRepository.findBookingsByUserIdWithFloor(userId, pageable);
     }
 }

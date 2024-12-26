@@ -10,9 +10,11 @@ import org.springframework.stereotype.Service;
 
 import java.util.Collections;
 
+
 @Service
 public class CustomUserDetailsService implements UserDetailsService {
 
+    private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(CustomUserDetailsService.class);
     private final UserRepository userRepository;
 
     @Autowired
@@ -20,21 +22,20 @@ public class CustomUserDetailsService implements UserDetailsService {
         this.userRepository = userRepository;
     }
 
-    // Load user by username (email)
+
     @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-
-        User user = userRepository.findByEmail(username)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + username));
-
+    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
         return buildUserDetails(user);
     }
 
-    // Load user by ID
-    public UserDetails loadUserById(Long id) throws UsernameNotFoundException {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found with id: " + id));
 
+    public UserDetails loadUserById(Long id) throws UsernameNotFoundException {
+        logger.info("Loading user by ID: {}", id);
+        var user = userRepository.findById(id)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with id: " + id));
+        logger.info("Found user: {}", user.getEmail());
         return buildUserDetails(user);
     }
 

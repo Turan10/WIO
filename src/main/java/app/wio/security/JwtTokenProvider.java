@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import java.security.Key;
 import java.util.Date;
 
+
 @Component
 public class JwtTokenProvider {
     private static final Logger logger = LoggerFactory.getLogger(JwtTokenProvider.class);
@@ -19,13 +20,15 @@ public class JwtTokenProvider {
     private final Key key;
     private final long jwtExpirationInMs;
 
-    public JwtTokenProvider(@Value("${app.jwt.secret}") String jwtSecret,
-                            @Value("${app.jwt.expiration-milliseconds}") long jwtExpirationInMs) {
+    public JwtTokenProvider(
+            @Value("${app.jwt.secret}") String jwtSecret,
+            @Value("${app.jwt.expiration-milliseconds}") long jwtExpirationInMs
+    ) {
         this.key = Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtSecret));
         this.jwtExpirationInMs = jwtExpirationInMs;
     }
 
-    // Generate token
+
     public String generateToken(User user) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + jwtExpirationInMs);
@@ -39,18 +42,17 @@ public class JwtTokenProvider {
                 .compact();
     }
 
-    // Get user ID from token
+
     public Long getUserIdFromJWT(String token) {
         Claims claims = Jwts.parserBuilder()
                 .setSigningKey(key)
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
-
         return Long.parseLong(claims.getSubject());
     }
 
-    // Validate token
+
     public boolean validateToken(String authToken) {
         try {
             Jwts.parserBuilder()

@@ -1,6 +1,6 @@
-
 package app.wio.dto;
 
+import app.wio.dto.validation.ValidOneTimeCodeForEmployee;
 import jakarta.validation.constraints.*;
 import lombok.*;
 
@@ -8,6 +8,8 @@ import lombok.*;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
+@ValidOneTimeCodeForEmployee
 public class UserRegistrationDto {
 
     @NotBlank(message = "Name is required.")
@@ -19,10 +21,15 @@ public class UserRegistrationDto {
 
     @NotBlank(message = "Password is required.")
     @Size(min = 6, message = "Password must be at least 6 characters long.")
-    @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).+$",
-            message = "Password must contain at least one uppercase letter, one lowercase letter, and one digit.")
+    @Pattern(
+            regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).+$",
+            message = "Password must contain at least one uppercase letter, one lowercase letter, and one digit."
+    )
     private String password;
 
-    @NotBlank(message = "Invite token is required.")
-    private String inviteToken;
+    @NotNull(message = "Role is required.")
+    private UserRoleDto role;
+
+
+    private String oneTimeCode;
 }

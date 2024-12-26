@@ -6,7 +6,11 @@ import lombok.*;
 
 import java.time.LocalDate;
 
+
 @Entity
+@Table(
+        uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "date"})
+)
 @Getter
 @Setter
 @NoArgsConstructor
@@ -24,10 +28,10 @@ public class Booking {
     private BookingStatus status;
 
     @ManyToOne
-    @JoinColumn(name = "user_id")
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
     @ManyToOne
-    @JoinColumn(name = "seat_id")
+    @JoinColumn(name = "seat_id", nullable = false)
     private Seat seat;
 }

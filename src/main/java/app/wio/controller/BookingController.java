@@ -1,15 +1,15 @@
 package app.wio.controller;
 
-import app.wio.dto.BookingDto;
-import app.wio.entity.Booking;
+import app.wio.dto.request.BookingRequestDto;
+import app.wio.dto.response.BookingResponseDto;
 import app.wio.service.BookingService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.*;
 import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/bookings")
@@ -22,31 +22,44 @@ public class BookingController {
         this.bookingService = bookingService;
     }
 
-    // Create a new booking
     @PostMapping("/create")
     @PreAuthorize("hasRole('EMPLOYEE')")
-    public ResponseEntity<Booking> createBooking(@Valid @RequestBody BookingDto bookingDto) {
-        Booking booking = bookingService.createBooking(bookingDto);
+    public ResponseEntity<BookingResponseDto> createBooking(
+            @Valid @RequestBody BookingRequestDto bookingDto
+    ) {
+        BookingResponseDto booking = bookingService.createBooking(bookingDto);
         return ResponseEntity.status(HttpStatus.CREATED).body(booking);
     }
 
-    // Cancel a booking
     @PostMapping("/cancel/{id}")
-    @PreAuthorize("hasRole('ADMIN') or @bookingService.isBookingOwner(#id, principal.id)")
+    @PreAuthorize("hasRole('ADMIN') or @bookingService.isBookingOwner(#id, authentication.principal.id)")
     public ResponseEntity<Void> cancelBooking(@PathVariable Long id) {
         bookingService.cancelBooking(id);
         return ResponseEntity.noContent().build();
     }
 
-    // Get bookings by user ID
+
     @GetMapping("/user/{userId}")
-    @PreAuthorize("hasRole('ADMIN') or principal.id == #userId")
-    public ResponseEntity<Page<Booking>> getBookingsByUserId(
+    @PreAuthorize("hasRole('ADMIN') or authentication.principal.id == #userId")
+    public ResponseEntity<Page<BookingResponseDto>> getBookingsByUserId(
             @PathVariable Long userId,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(defaultValue = "10") int size
+    ) {
         Pageable pageable = PageRequest.of(page, size);
-        Page<Booking> bookings = bookingService.getBookingsByUserId(userId, pageable);
+        Page<BookingResponseDto> bookings = bookingService.getBookingsByUserId(userId, pageable);
         return ResponseEntity.ok(bookings);
+    }
+
+
+    @GetMapping("/user/{userId}/all")
+    @PreAuthorize("hasRole('ADMIN') or #userId == authentication.principal.id")
+    public ResponseEntity<?> getBookingsForUser(
+            @PathVariable Long userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        Page<BookingResponseDto> bookingPage = bookingService.findBookingsForUser(userId, page, size);
+        return ResponseEntity.ok(bookingPage);
     }
 }

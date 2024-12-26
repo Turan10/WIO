@@ -1,5 +1,7 @@
 package app.wio.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -7,6 +9,7 @@ import lombok.*;
 
 import java.util.ArrayList;
 import java.util.List;
+
 
 @Entity
 @Getter
@@ -28,8 +31,10 @@ public class Floor {
 
     @ManyToOne
     @JoinColumn(name = "company_id")
+    @JsonBackReference
     private Company company;
 
     @OneToMany(mappedBy = "floor", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
     private List<Seat> seats = new ArrayList<>();
 }

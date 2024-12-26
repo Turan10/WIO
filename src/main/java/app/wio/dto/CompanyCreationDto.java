@@ -3,7 +3,6 @@ package app.wio.dto;
 import jakarta.validation.constraints.*;
 import lombok.*;
 
-import java.util.List;
 
 @Getter
 @Setter
@@ -17,11 +16,14 @@ public class CompanyCreationDto {
     @NotBlank(message = "Address is required.")
     private String address;
 
-    @NotNull(message = "Floor count is required.")
-    @Min(value = 1, message = "There must be at least one floor.")
-    private Integer floorCount;
+    @NotBlank(message = "Admin name is required.")
+    private String adminName;
 
-    @NotNull(message = "Floor names are required.")
-    @Size(min = 1, message = "At least one floor name is required.")
-    private List<@NotBlank String> floorNames;
+    @NotBlank(message = "Admin email is required.")
+    @Email(message = "Invalid email format.")
+    private String adminEmail;
+
+    @NotBlank(message = "Admin password is required.")
+    @Size(min = 6, message = "Admin password must be at least 6 characters long.")
+    private String adminPassword;
 }

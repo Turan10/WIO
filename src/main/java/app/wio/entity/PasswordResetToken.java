@@ -17,12 +17,14 @@ public class PasswordResetToken {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(unique = true, nullable = false)
     private String token;
 
+    @Column(nullable = false)
     private LocalDateTime expiryDate;
 
     @ManyToOne
-    @JoinColumn(name = "user_id")
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
     public PasswordResetToken(User user, int expirationInHours) {

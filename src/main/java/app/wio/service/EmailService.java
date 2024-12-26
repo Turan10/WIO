@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+
 @Service
 public class EmailService {
 
@@ -23,7 +24,8 @@ public class EmailService {
     public void sendVerificationEmail(User user, String token) {
         String verificationLink = frontendUrl + "/verify?token=" + token;
         String subject = "Email Verification";
-        String content = "Dear " + user.getName() + ",\n\nPlease click the link below to verify your email address:\n"
+        String content = "Dear " + user.getName()
+                + ",\n\nPlease click the link below to verify your email address:\n"
                 + verificationLink + "\n\nThank you!";
         sendEmail(user.getEmail(), subject, content);
     }
@@ -31,8 +33,10 @@ public class EmailService {
     public void sendPasswordResetEmail(User user, String token) {
         String resetLink = frontendUrl + "/password-reset?token=" + token;
         String subject = "Password Reset Request";
-        String content = "Dear " + user.getName() + ",\n\nPlease click the link below to reset your password:\n"
-                + resetLink + "\n\nIf you did not request a password reset, please ignore this email.\n\nThank you!";
+        String content = "Dear " + user.getName()
+                + ",\n\nPlease click the link below to reset your password:\n"
+                + resetLink
+                + "\n\nIf you did not request a password reset, please ignore this email.\n\nThank you!";
         sendEmail(user.getEmail(), subject, content);
     }
 
@@ -46,7 +50,6 @@ public class EmailService {
             logger.info("Email sent to {}", to);
         } catch (Exception e) {
             logger.error("Failed to send email to {}", to, e);
-            // Handle exception or rethrow as needed
         }
     }
 }

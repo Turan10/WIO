@@ -1,10 +1,10 @@
 package app.wio.dto;
 
-import app.wio.entity.Floor;
-import app.wio.entity.Seat;
 import app.wio.entity.SeatStatus;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.*;
 import lombok.*;
+
 
 @Getter
 @Setter
@@ -12,33 +12,24 @@ import lombok.*;
 @AllArgsConstructor
 public class SeatDto {
 
-    // This field is for updates
     private Long id;
 
     @NotBlank(message = "Seat number is required.")
     private String seatNumber;
 
+    @JsonProperty("xCoordinate")
     @NotNull(message = "X coordinate is required.")
     private Double xCoordinate;
 
+    @JsonProperty("yCoordinate")
     @NotNull(message = "Y coordinate is required.")
     private Double yCoordinate;
 
     private SeatStatus status;
 
     @NotNull(message = "Floor ID is required.")
+    @Min(value = 1, message = "Floor ID must be greater than 0.")
     private Long floorId;
 
-    public Seat toEntity() {
-        Seat seat = new Seat();
-        seat.setId(this.id);
-        seat.setSeatNumber(this.seatNumber);
-        seat.setXCoordinate(this.xCoordinate);
-        seat.setYCoordinate(this.yCoordinate);
-        seat.setStatus(this.status);
-        Floor floor = new Floor();
-        floor.setId(this.floorId);
-        seat.setFloor(floor);
-        return seat;
-    }
+    private Integer angle;
 }

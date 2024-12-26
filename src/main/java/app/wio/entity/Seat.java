@@ -1,7 +1,9 @@
 package app.wio.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
 @Entity
@@ -9,6 +11,7 @@ import lombok.*;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Table(name = "seats")
 public class Seat {
 
     @Id
@@ -27,10 +30,12 @@ public class Seat {
     @Enumerated(EnumType.STRING)
     private SeatStatus status;
 
-    @ManyToOne
-    @JoinColumn(name = "floor_id")
-    private Floor floor;
+    private Integer angle; // rotation
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "floor_id")
+    @JsonBackReference
+    private Floor floor;
     @Version
     private Integer version;
 }

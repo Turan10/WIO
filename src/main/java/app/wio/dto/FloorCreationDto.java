@@ -1,9 +1,8 @@
 package app.wio.dto;
 
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.*;
 import lombok.*;
+
 
 @Getter
 @Setter
@@ -19,5 +18,6 @@ public class FloorCreationDto {
     private Integer floorNumber;
 
     @NotNull(message = "Company ID is required.")
+    @Min(value = 1, message = "Company ID must be greater than 0.")
     private Long companyId;
 }

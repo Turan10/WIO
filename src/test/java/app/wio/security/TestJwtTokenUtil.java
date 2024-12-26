@@ -24,7 +24,6 @@ public class TestJwtTokenUtil {
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
-
     public String generateToken(User user) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + jwtExpirationInMs);
@@ -37,6 +36,4 @@ public class TestJwtTokenUtil {
                 .signWith(getSigningKey(), SignatureAlgorithm.HS512)
                 .compact();
     }
-
-
 }

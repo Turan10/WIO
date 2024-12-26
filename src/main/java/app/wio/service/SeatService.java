@@ -1,13 +1,17 @@
 package app.wio.service;
 
-import app.wio.dto.SeatBookingInfoDto;
 import app.wio.dto.SeatDto;
+import app.wio.dto.SeatBookingInfoDto;
 import app.wio.entity.*;
-import app.wio.exception.FloorNotFoundException;
-import app.wio.exception.SeatNotFoundException;
-import app.wio.repository.*;
+import app.wio.exception.ResourceConflictException;
+import app.wio.exception.ResourceNotFoundException;
+import app.wio.mapper.SeatMapper;
+import app.wio.repository.BookingRepository;
+import app.wio.repository.FloorRepository;
+import app.wio.repository.SeatRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.*;
@@ -18,120 +22,125 @@ public class SeatService {
 
     private final SeatRepository seatRepository;
     private final FloorRepository floorRepository;
+    private final SeatMapper seatMapper;
     private final BookingRepository bookingRepository;
 
     @Autowired
-    public SeatService(SeatRepository seatRepository,
-                       FloorRepository floorRepository,
-                       BookingRepository bookingRepository) {
+    public SeatService(
+            SeatRepository seatRepository,
+            FloorRepository floorRepository,
+            SeatMapper seatMapper,
+            BookingRepository bookingRepository
+    ) {
         this.seatRepository = seatRepository;
         this.floorRepository = floorRepository;
+        this.seatMapper = seatMapper;
         this.bookingRepository = bookingRepository;
     }
 
-    public boolean existsByFloorId(Long floorId) {
-        return seatRepository.existsByFloorId(floorId);
+
+    public SeatDto createSeat(SeatDto seatDto) {
+        Floor floor = floorRepository.findById(seatDto.getFloorId())
+                .orElseThrow(() -> new ResourceNotFoundException("Floor not found"));
+
+        Seat seat = seatMapper.toEntity(seatDto);
+        seat.setFloor(floor);
+        Seat saved = seatRepository.save(seat);
+        return seatMapper.toDto(saved);
     }
 
-    public Seat getSeatById(Long id) {
-        return seatRepository.findById(id)
-                .orElseThrow(() -> new SeatNotFoundException("Seat with ID " + id + " not found."));
+
+    public SeatDto getSeatDtoById(Long id) {
+        Seat seat = seatRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Seat not found"));
+        return seatMapper.toDto(seat);
     }
 
-    public Seat getSeatByIdAndFloorId(Long id, Long floorId) {
-        return seatRepository.findByIdAndFloorId(id, floorId)
-                .orElseThrow(() -> new SeatNotFoundException("Seat not found."));
-    }
 
-    public Seat createSeat(SeatDto seatDto) {
-        // Map SeatDto to Seat entity
-        Seat seat = new Seat();
+    public SeatDto updateSeat(Long id, SeatDto seatDto) {
+        Seat seat = seatRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Seat not found"));
+
         seat.setSeatNumber(seatDto.getSeatNumber());
         seat.setXCoordinate(seatDto.getXCoordinate());
         seat.setYCoordinate(seatDto.getYCoordinate());
+        seat.setAngle(seatDto.getAngle());
         seat.setStatus(seatDto.getStatus());
 
-        // Fetch the floor
-        Floor floor = floorRepository.findById(seatDto.getFloorId())
-                .orElseThrow(() -> new FloorNotFoundException("Floor not found."));
-        seat.setFloor(floor);
-
-        // Check for unique seat number on the floor
-        if (seatRepository.existsBySeatNumberAndFloorId(seatDto.getSeatNumber(), seatDto.getFloorId())) {
-            throw new IllegalArgumentException("Seat number already exists on this floor.");
-        }
-
-        return seatRepository.save(seat);
+        Seat saved = seatRepository.save(seat);
+        return seatMapper.toDto(saved);
     }
 
-    public Seat updateSeat(Long id, SeatDto seatDto) {
-        Seat existingSeat = getSeatById(id);
-
-        // Validate floor existence
-        Floor floor = floorRepository.findById(seatDto.getFloorId())
-                .orElseThrow(() -> new FloorNotFoundException("Floor not found."));
-
-        // Check for unique seat number if changed
-        if (!existingSeat.getSeatNumber().equals(seatDto.getSeatNumber())) {
-            if (seatRepository.existsBySeatNumberAndFloorId(seatDto.getSeatNumber(), seatDto.getFloorId())) {
-                throw new IllegalArgumentException("Seat number already exists on this floor.");
-            }
-        }
-
-        // Update seat details
-        existingSeat.setSeatNumber(seatDto.getSeatNumber());
-        existingSeat.setXCoordinate(seatDto.getXCoordinate());
-        existingSeat.setYCoordinate(seatDto.getYCoordinate());
-        existingSeat.setStatus(seatDto.getStatus());
-        existingSeat.setFloor(floor);
-
-        return seatRepository.save(existingSeat);
-    }
 
     public void deleteSeat(Long id) {
-        Seat seat = getSeatById(id);
+        Seat seat = seatRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Seat not found"));
+        LocalDate today = LocalDate.now();
+        List<Booking> futureBookings = bookingRepository.findBySeatIdAndDateAfterAndStatus(
+                id, today, BookingStatus.ACTIVE
+        );
+        if (!futureBookings.isEmpty()) {
+            throw new ResourceConflictException(
+                    "Cannot delete seat; it has future active bookings."
+            );
+        }
+
         seatRepository.delete(seat);
     }
 
-    public List<Seat> getAvailableSeatsByFloorIdAndDate(Long floorId, LocalDate date) {
-
-        List<Seat> allSeats = seatRepository.findByFloorId(floorId);
-
-        // Get IDs of seats that are booked on the given date
-        List<Long> bookedSeatIds = bookingRepository.findBookedSeatIdsByFloorIdAndDate(floorId, date);
-
-        // Filter out booked seats
-        return allSeats.stream()
-                .filter(seat -> !bookedSeatIds.contains(seat.getId()))
+    public List<SeatDto> getSeatsByFloorId(Long floorId) {
+        List<Seat> seats = seatRepository.findByFloorId(floorId);
+        return seats.stream()
+                .map(seatMapper::toDto)
                 .collect(Collectors.toList());
     }
 
-    public List<SeatBookingInfoDto> getSeatBookings(Long floorId, LocalDate date) {
-        List<Seat> allSeats = seatRepository.findByFloorId(floorId);
 
-        // Get bookings for the given date
-        List<Booking> bookings = bookingRepository.findByFloorIdAndDate(floorId, date);
-
-        Map<Long, String> seatBookingsMap = bookings.stream()
-                .collect(Collectors.toMap(
-                        booking -> booking.getSeat().getId(),
-                        booking -> booking.getUser().getName()
-                ));
-
-        return allSeats.stream()
-                .map(seat -> {
-                    SeatBookingInfoDto dto = new SeatBookingInfoDto();
-                    dto.setSeatId(seat.getId());
-                    dto.setSeatNumber(seat.getSeatNumber());
-                    if (seatBookingsMap.containsKey(seat.getId())) {
-                        dto.setBooked(true);
-                        dto.setUserName(seatBookingsMap.get(seat.getId()));
-                    } else {
-                        dto.setBooked(false);
-                        dto.setUserName(null);
-                    }
-                    return dto;
-                })
+    public List<SeatDto> getAvailableSeatsByFloorId(Long floorId) {
+        return getSeatsByFloorId(floorId).stream()
+                .filter(s -> s.getStatus() != null && s.getStatus().name().equals("AVAILABLE"))
                 .collect(Collectors.toList());
+    }
+
+
+    public List<SeatBookingInfoDto> getSeatsWithOccupants(Long floorId, LocalDate date) {
+        // fetch seats for the floor
+        List<Seat> seats = seatRepository.findByFloorId(floorId);
+
+        return seats.stream().map(seat -> {
+            SeatBookingInfoDto dto = new SeatBookingInfoDto();
+            dto.setId(seat.getId());
+            dto.setSeatNumber(seat.getSeatNumber());
+            dto.setXCoordinate(seat.getXCoordinate());
+            dto.setYCoordinate(seat.getYCoordinate());
+            dto.setAngle(seat.getAngle());
+
+            List<Booking> seatBookings = bookingRepository.findBySeatIdAndDate(seat.getId(), date);
+            Optional<Booking> activeBooking = seatBookings.stream()
+                    .filter(b -> b.getStatus() == BookingStatus.ACTIVE)
+                    .findFirst();
+
+            if (activeBooking.isPresent()) {
+                Booking b = activeBooking.get();
+                dto.setBooked(true);
+                dto.setOccupantName(b.getUser() != null ? b.getUser().getName() : "Unknown");
+            } else {
+                dto.setBooked(false);
+                dto.setOccupantName(null);
+            }
+
+            return dto;
+        }).collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void bulkUpdateSeats(List<SeatDto> seatDtos) {
+        for (SeatDto dto : seatDtos) {
+            if (dto.getId() == null) {
+                createSeat(dto);
+            } else {
+                updateSeat(dto.getId(), dto);
+            }
+        }
     }
 }

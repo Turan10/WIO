@@ -16,7 +16,9 @@ public class CustomUserDetails implements UserDetails, Serializable {
     private final boolean enabled;
     private final Collection<? extends GrantedAuthority> authorities;
 
-    public CustomUserDetails(Long id, String username, String password, boolean enabled, Collection<? extends GrantedAuthority> authorities) {
+    public CustomUserDetails(Long id, String username, String password,
+                             boolean enabled,
+                             Collection<? extends GrantedAuthority> authorities) {
         this.id = id;
         this.username = username;
         this.password = password;
@@ -38,7 +40,7 @@ public class CustomUserDetails implements UserDetails, Serializable {
         return enabled;
     }
 
-
+    // For simplicity, we'll keep them always true
     @Override
     public boolean isAccountNonExpired() {
         return true;

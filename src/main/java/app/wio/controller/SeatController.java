@@ -2,17 +2,17 @@ package app.wio.controller;
 
 import app.wio.dto.SeatBookingInfoDto;
 import app.wio.dto.SeatDto;
-import app.wio.entity.Seat;
+import app.wio.dto.request.BulkSeatUpdateRequest;
 import app.wio.service.SeatService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.List;
+
 
 @RestController
 @RequestMapping("/api/seats")
@@ -27,21 +27,25 @@ public class SeatController {
 
     @PostMapping("/create")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Seat> createSeat(@Valid @RequestBody SeatDto seatDto) {
-        Seat seat = seatService.createSeat(seatDto);
+    public ResponseEntity<SeatDto> createSeat(@Valid @RequestBody SeatDto seatDto) {
+        SeatDto seat = seatService.createSeat(seatDto);
         return ResponseEntity.status(HttpStatus.CREATED).body(seat);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Seat> getSeatById(@PathVariable Long id) {
-        Seat seat = seatService.getSeatById(id);
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<SeatDto> getSeatById(@PathVariable Long id) {
+        SeatDto seat = seatService.getSeatDtoById(id);
         return ResponseEntity.ok(seat);
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Seat> updateSeat(@PathVariable Long id, @Valid @RequestBody SeatDto seatDto) {
-        Seat updatedSeat = seatService.updateSeat(id, seatDto);
+    public ResponseEntity<SeatDto> updateSeat(
+            @PathVariable Long id,
+            @Valid @RequestBody SeatDto seatDto
+    ) {
+        SeatDto updatedSeat = seatService.updateSeat(id, seatDto);
         return ResponseEntity.ok(updatedSeat);
     }
 
@@ -52,21 +56,35 @@ public class SeatController {
         return ResponseEntity.noContent().build();
     }
 
-    // Get available seats on a floor for a specific date
+
     @GetMapping("/available")
-    public ResponseEntity<List<Seat>> getAvailableSeats(
-            @RequestParam Long floorId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        List<Seat> seats = seatService.getAvailableSeatsByFloorIdAndDate(floorId, date);
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<SeatDto>> getAvailableSeats(@RequestParam Long floorId) {
+        List<SeatDto> seats = seatService.getAvailableSeatsByFloorId(floorId);
         return ResponseEntity.ok(seats);
     }
 
-    // Get seat bookings for a floor and date
-    @GetMapping("/floor/{floorId}/bookings")
-    public ResponseEntity<List<SeatBookingInfoDto>> getSeatBookings(
+
+    @GetMapping("/floor/{floorId}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> getSeatsByFloorId(
             @PathVariable Long floorId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        List<SeatBookingInfoDto> bookings = seatService.getSeatBookings(floorId, date);
-        return ResponseEntity.ok(bookings);
+            @RequestParam(required = false) String date
+    ) {
+        if (date == null) {
+            List<SeatDto> seatDtos = seatService.getSeatsByFloorId(floorId);
+            return ResponseEntity.ok(seatDtos);
+        } else {
+            LocalDate localDate = LocalDate.parse(date);
+            List<SeatBookingInfoDto> occupantList = seatService.getSeatsWithOccupants(floorId, localDate);
+            return ResponseEntity.ok(occupantList);
+        }
+    }
+
+    @PostMapping("/bulk-update")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> bulkUpdateSeats(@Valid @RequestBody BulkSeatUpdateRequest request) {
+        seatService.bulkUpdateSeats(request.getSeats());
+        return ResponseEntity.ok("Seats updated");
     }
 }
