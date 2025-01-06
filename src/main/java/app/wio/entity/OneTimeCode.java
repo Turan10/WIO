@@ -18,7 +18,7 @@ public class OneTimeCode {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Which company this code is for
+
     private Long companyId;
 
     @Column(unique = true, nullable = false)
@@ -27,7 +27,7 @@ public class OneTimeCode {
     @Column(nullable = false)
     private LocalDateTime expiryDate;
 
-    // Could track usage count, if you want to limit how many employees can use it
+
     private int usedCount;
 
     public OneTimeCode(Long companyId, int expirationInHours) {

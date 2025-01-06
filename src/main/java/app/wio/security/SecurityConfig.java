@@ -18,7 +18,6 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
-
     private final JwtAuthenticationEntryPoint unauthorizedHandler;
     private final CustomAccessDeniedHandler accessDeniedHandler;
     private final CustomUserDetailsService customUserDetailsService;
@@ -37,49 +36,37 @@ public class SecurityConfig {
         this.tokenProvider = tokenProvider;
     }
 
-
     @Bean
     public JwtAuthenticationFilter jwtAuthenticationFilter() {
         return new JwtAuthenticationFilter(tokenProvider, customUserDetailsService);
     }
 
-
     @Bean
-    public AuthenticationManager authenticationManager(
-            AuthenticationConfiguration authConfig
-    ) throws Exception {
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig)
+            throws Exception {
         return authConfig.getAuthenticationManager();
     }
-
 
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
-
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
-                .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(exception -> exception
                         .authenticationEntryPoint(unauthorizedHandler)
                         .accessDeniedHandler(accessDeniedHandler)
                 )
                 .authorizeHttpRequests(authz -> authz
-                        // Allow public access to certain endpoints
                         .requestMatchers("/api/companies/create").permitAll()
                         .requestMatchers("/api/users/register", "/api/users/login").permitAll()
-                        // Everything else requires authentication
                         .anyRequest().authenticated()
                 );
-
-
-        http.addFilterBefore(jwtAuthenticationFilter(),
-                UsernamePasswordAuthenticationFilter.class);
-
+        http.addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 }

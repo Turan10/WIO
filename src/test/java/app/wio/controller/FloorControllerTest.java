@@ -2,18 +2,19 @@ package app.wio.controller;
 
 import app.wio.dto.FloorCreationDto;
 import app.wio.dto.response.FloorDto;
-import app.wio.entity.Company;
 import app.wio.entity.Floor;
+import app.wio.mapper.FloorMapper;
 import app.wio.service.FloorService;
 import app.wio.service.SeatService;
-import app.wio.mapper.FloorMapper; // Added FloorMapper
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -22,12 +23,12 @@ import java.util.Collections;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(FloorController.class)
-public class FloorControllerTest {
+class FloorControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -63,6 +64,7 @@ public class FloorControllerTest {
     @Test
     @WithMockUser(roles = "ADMIN")
     void testCreateFloor() throws Exception {
+        // Prepare a FloorDto to return from floorMapper
         FloorDto responseDto = new FloorDto();
         responseDto.setId(1L);
         responseDto.setName("First Floor");
@@ -70,12 +72,12 @@ public class FloorControllerTest {
         responseDto.setCompanyId(1L);
         responseDto.setSeatIds(Collections.emptyList());
 
-        when(floorService.createFloor(any(FloorCreationDto.class))).thenReturn(new Floor());
+        when(floorService.createFloor(any(FloorCreationDto.class))).thenReturn(floor);
         when(floorMapper.toDto(any(Floor.class))).thenReturn(responseDto);
 
         mockMvc.perform(post("/api/floors/create")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"name\":\"First Floor\",\"floorNumber\":1,\"companyId\":1}")
+                        .content(objectMapper.writeValueAsString(floorCreationDto))
                         .with(csrf()))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(1))

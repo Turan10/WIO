@@ -1,11 +1,26 @@
 package app.wio.service;
 
-import app.wio.dto.*;
+import app.wio.dto.ChangePasswordDto;
+import app.wio.dto.UserLoginDto;
+import app.wio.dto.UserRegistrationDto;
+import app.wio.dto.UserUpdateDto;
 import app.wio.dto.response.UserResponseDto;
-import app.wio.entity.*;
-import app.wio.exception.*;
+import app.wio.entity.Company;
+import app.wio.entity.OneTimeCode;
+import app.wio.entity.PasswordResetToken;
+import app.wio.entity.User;
+import app.wio.entity.UserRole;
+import app.wio.exception.EmailAlreadyInUseException;
+import app.wio.exception.InvalidCredentialsException;
+import app.wio.exception.InvalidOldPasswordException;
+import app.wio.exception.InvalidTokenException;
+import app.wio.exception.ResourceConflictException;
+import app.wio.exception.ResourceNotFoundException;
 import app.wio.mapper.UserMapper;
-import app.wio.repository.*;
+import app.wio.repository.CompanyRepository;
+import app.wio.repository.OneTimeCodeRepository;
+import app.wio.repository.PasswordResetTokenRepository;
+import app.wio.repository.UserRepository;
 import app.wio.security.CustomUserDetails;
 import app.wio.security.JwtTokenProvider;
 import jakarta.transaction.Transactional;
@@ -14,13 +29,11 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
 public class UserService {
-
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final UserMapper userMapper;
@@ -67,22 +80,17 @@ public class UserService {
         if (userRepository.existsByEmail(dto.getEmail())) {
             throw new EmailAlreadyInUseException("Email already exists.");
         }
-
         User user = userMapper.toEntity(dto);
         user.setPassword(passwordEncoder.encode(dto.getPassword()));
         user.setEnabled(true);
-
-        if (dto.getRole() == UserRoleDto.ADMIN) {
+        if (dto.getRole() != null && dto.getRole().name().equals("ADMIN")) {
             user.setRole(UserRole.ADMIN);
-
-        } else if (dto.getRole() == UserRoleDto.EMPLOYEE) {
-            user.setRole(UserRole.EMPLOYEE);
-
-            String codeValue = dto.getOneTimeCode();
-            if (codeValue == null || codeValue.isBlank()) {
+        } else {
+            if (dto.getOneTimeCode() == null || dto.getOneTimeCode().isBlank()) {
                 throw new ResourceNotFoundException("One-time code is required for EMPLOYEE registrations.");
             }
-            OneTimeCode code = oneTimeCodeRepository.findByCode(codeValue)
+            user.setRole(UserRole.EMPLOYEE);
+            OneTimeCode code = oneTimeCodeRepository.findByCode(dto.getOneTimeCode())
                     .orElseThrow(() -> new InvalidTokenException("Invalid one-time code."));
             if (code.isExpired()) {
                 throw new ResourceNotFoundException("One-time code has expired.");
@@ -92,24 +100,17 @@ public class UserService {
             user.setCompany(company);
             code.setUsedCount(code.getUsedCount() + 1);
             oneTimeCodeRepository.save(code);
-
-        } else {
-            throw new ResourceConflictException("Invalid user role.");
         }
-
         User savedUser = userRepository.save(user);
-
         return userMapper.toDto(savedUser);
     }
 
     public UserResponseDto authenticateUser(UserLoginDto loginDto) {
         User user = userRepository.findByEmail(loginDto.getEmail())
                 .orElseThrow(() -> new InvalidCredentialsException("Invalid email or password."));
-
         if (!passwordEncoder.matches(loginDto.getPassword(), user.getPassword())) {
             throw new InvalidCredentialsException("Invalid email or password.");
         }
-
         String token = jwtTokenProvider.generateToken(user);
         UserResponseDto dto = userMapper.toDto(user);
         dto.setToken(token);
@@ -126,44 +127,30 @@ public class UserService {
     public UserResponseDto updateUser(Long userId, UserUpdateDto userUpdateDto) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found."));
-
-
         if (userUpdateDto.getName() != null) {
             user.setName(userUpdateDto.getName());
         }
-
-
         if (userUpdateDto.getEmail() != null && !user.getEmail().equals(userUpdateDto.getEmail())) {
             if (userRepository.existsByEmail(userUpdateDto.getEmail())) {
                 throw new EmailAlreadyInUseException("Email already in use.");
             }
             user.setEmail(userUpdateDto.getEmail());
         }
-
-
         if (userUpdateDto.getTitle() != null) {
             user.setTitle(userUpdateDto.getTitle());
         }
-
-
         if (userUpdateDto.getDepartment() != null) {
             user.setDepartment(userUpdateDto.getDepartment());
         }
-
-
         if (userUpdateDto.getPhone() != null) {
             user.setPhone(userUpdateDto.getPhone());
         }
-
-
         if (userUpdateDto.getAvatar() != null) {
             user.setAvatar(userUpdateDto.getAvatar());
         }
-
         userRepository.save(user);
         return userMapper.toDto(user);
     }
-
 
     public void changePassword(Long userId, ChangePasswordDto changePasswordDto) {
         User user = userRepository.findById(userId)
@@ -192,7 +179,6 @@ public class UserService {
                 .orElseThrow(() -> new ResourceNotFoundException("User not found."));
         PasswordResetToken newResetToken = new PasswordResetToken(user, 24);
         passwordResetTokenRepository.save(newResetToken);
-        // Optionally, send an email with the reset link
     }
 
     @Transactional
@@ -207,22 +193,18 @@ public class UserService {
 
     @Transactional
     public void removeEmployeeFromCompany(Long employeeId) {
-        CustomUserDetails currentUser = (CustomUserDetails)
-                SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        CustomUserDetails currentUser = (CustomUserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         Long adminId = currentUser.getId();
-
         User admin = userRepository.findById(adminId)
                 .orElseThrow(() -> new ResourceNotFoundException("Admin not found."));
         if (admin.getRole() != UserRole.ADMIN) {
             throw new AccessDeniedException("Only admin can remove employees");
         }
-
         User employee = userRepository.findById(employeeId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found."));
         if (employee.getRole() != UserRole.EMPLOYEE) {
             throw new ResourceConflictException("Only EMPLOYEE users can be removed.");
         }
-
         if (employee.getCompany() == null || !employee.getCompany().getId().equals(admin.getCompany().getId())) {
             throw new AccessDeniedException("You cannot remove an employee from another company.");
         }

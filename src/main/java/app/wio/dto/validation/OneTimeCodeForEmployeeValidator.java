@@ -5,9 +5,8 @@ import app.wio.dto.UserRoleDto;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 
-
-public class OneTimeCodeForEmployeeValidator implements
-        ConstraintValidator<ValidOneTimeCodeForEmployee, UserRegistrationDto> {
+public class OneTimeCodeForEmployeeValidator
+        implements ConstraintValidator<ValidOneTimeCodeForEmployee, UserRegistrationDto> {
 
     @Override
     public boolean isValid(UserRegistrationDto dto, ConstraintValidatorContext context) {

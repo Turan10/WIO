@@ -8,15 +8,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.security.Key;
 import java.util.Date;
-
 
 @Component
 public class JwtTokenProvider {
     private static final Logger logger = LoggerFactory.getLogger(JwtTokenProvider.class);
-
     private final Key key;
     private final long jwtExpirationInMs;
 
@@ -28,11 +25,9 @@ public class JwtTokenProvider {
         this.jwtExpirationInMs = jwtExpirationInMs;
     }
 
-
     public String generateToken(User user) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + jwtExpirationInMs);
-
         return Jwts.builder()
                 .setSubject(Long.toString(user.getId()))
                 .claim("role", user.getRole().name())
@@ -42,7 +37,6 @@ public class JwtTokenProvider {
                 .compact();
     }
 
-
     public Long getUserIdFromJWT(String token) {
         Claims claims = Jwts.parserBuilder()
                 .setSigningKey(key)
@@ -51,7 +45,6 @@ public class JwtTokenProvider {
                 .getBody();
         return Long.parseLong(claims.getSubject());
     }
-
 
     public boolean validateToken(String authToken) {
         try {

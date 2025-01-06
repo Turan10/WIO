@@ -1,29 +1,32 @@
-/*
-// File: src/test/java/app/wio/integrationsTest/BookingControllerIT.java
-
 package app.wio.integrationsTest;
 
 import app.wio.dto.request.BookingRequestDto;
 import app.wio.entity.*;
-import app.wio.repository.*;
+import app.wio.repository.BookingRepository;
+import app.wio.repository.SeatRepository;
+import app.wio.repository.UserRepository;
+import app.wio.repository.CompanyRepository;
+import app.wio.repository.FloorRepository;
 import app.wio.security.TestJwtTokenUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.persistence.EntityManager;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -31,8 +34,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
-@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 @Transactional
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class BookingControllerIT {
 
     @Autowired
@@ -54,47 +57,34 @@ class BookingControllerIT {
     private FloorRepository floorRepository;
 
     @Autowired
-    private InviteRepository inviteRepository;
-
-    @Autowired
-    private EntityManager entityManager;
-
-    @Autowired
-    private TestJwtTokenUtil testJwtTokenUtil;
+    private BookingRepository bookingRepository;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-    private Long companyId;
-    private Long floorId;
+    @Autowired
+    private TestJwtTokenUtil jwtTokenUtil;
+
+    private String employeeToken;
     private Long seatId;
-    private Long inviteId;
-    private Long userId;
-    private String userToken;
+    private Long employeeId;
 
     @BeforeEach
     void setUp() {
-        // Clear any existing persistence context
-        entityManager.clear();
-
-        // Initialize test data using repositories
-
-        // Create Company
+        // Create a Company
         Company company = new Company();
-        company.setName("Test Company");
-        company.setAddress("123 Test St");
+        company.setName("Exam");
+        company.setAddress("123 Testvej");
         company = companyRepository.save(company);
-        companyId = company.getId();
 
-        // Create Floor
+        // Create a Floor
         Floor floor = new Floor();
-        floor.setName("First Floor");
+        floor.setName("Main Floor");
         floor.setFloorNumber(1);
         floor.setCompany(company);
         floor = floorRepository.save(floor);
-        floorId = floor.getId();
 
-        // Create Seat
+        // Create a Seat
         Seat seat = new Seat();
         seat.setSeatNumber("A1");
         seat.setXCoordinate(10.0);
@@ -102,62 +92,55 @@ class BookingControllerIT {
         seat.setStatus(SeatStatus.AVAILABLE);
         seat.setFloor(floor);
         seat = seatRepository.save(seat);
-        seatId = seat.getId();
+        this.seatId = seat.getId();
 
-        // Create Invite
-        Invite invite = new Invite();
-        invite.setToken("testInviteToken");
-        invite.setExpiryDate(LocalDate.of(2099, 12, 31).atTime(23, 59, 59));
-        invite.setCompany(company);
-        invite.setJoinedCount(0);
-        invite = inviteRepository.save(invite);
-        inviteId = invite.getId();
+        // Create an EMPLOYEE User
+        User employee = new User();
+        employee.setName("Employee User");
+        employee.setEmail("employee@example.com");
+        employee.setPassword(passwordEncoder.encode("Password123"));
+        employee.setRole(UserRole.EMPLOYEE);
+        employee.setEnabled(true);
+        employee.setCompany(company);
+        employee = userRepository.save(employee);
+        this.employeeId = employee.getId();
 
-        // Create User
-        User user = new User();
-        user.setName("Test User");
-        user.setEmail("test@example.com");
-        user.setPassword(passwordEncoder.encode("hashedPassword"));
-        user.setEnabled(true);
-        user.setRole(UserRole.EMPLOYEE);
-        user.setCompany(company);
-        user.setInviteUsed(invite);
-        user = userRepository.save(user);
-        userId = user.getId();
-
-        // Generate JWT token for the user
-        userToken = testJwtTokenUtil.generateToken(user);
-
-        // Flush and clear the persistence context to ensure entities are loaded fresh
-        entityManager.flush();
-        entityManager.clear();
-
-        // Verify seat exists and is properly initialized
-        Seat fetchedSeat = seatRepository.findById(seatId).orElseThrow();
-        assertNotNull(fetchedSeat.getVersion(), "Seat version should not be null");
-
-        // Verify user exists
-        assertTrue(userRepository.findById(userId).isPresent(), "Test user should exist");
+        // Generate JWT for EMPLOYEE
+        this.employeeToken = jwtTokenUtil.generateToken(employee);
     }
 
     @Test
     void testCreateBooking() throws Exception {
-        // Create the booking request
-        BookingRequestDto req = new BookingRequestDto();
-        req.setSeatId(seatId);
-        req.setUserId(userId);
-        req.setDate(LocalDate.now().plusDays(1));
+        BookingRequestDto dto = new BookingRequestDto();
+        dto.setSeatId(seatId);
+        dto.setUserId(employeeId);
+        dto.setDate(LocalDate.now().plusDays(1));
 
-        // Perform request with JWT token
         mockMvc.perform(post("/api/bookings/create")
-                        .header("Authorization", "Bearer " + userToken)
+                        .header("Authorization", "Bearer " + employeeToken)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(req)))
+                        .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").exists())
                 .andExpect(jsonPath("$.seatId").value(seatId))
-                .andExpect(jsonPath("$.userId").value(userId))
+                .andExpect(jsonPath("$.userId").value(employeeId))
                 .andExpect(jsonPath("$.status").value("ACTIVE"));
+
+        // Verify that it was saved to DB
+        assertTrue(bookingRepository.findAll().size() > 0);
+    }
+
+    @Test
+    void testCreateBooking_Unauthorized() throws Exception {
+        BookingRequestDto dto = new BookingRequestDto();
+        dto.setSeatId(seatId);
+        dto.setUserId(employeeId);
+        dto.setDate(LocalDate.now().plusDays(1));
+
+        // No token → Expect 401
+        mockMvc.perform(post("/api/bookings/create")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isUnauthorized());
     }
 }
-*/

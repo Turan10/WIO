@@ -11,69 +11,39 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.*;
-
 import java.io.IOException;
 
-
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
-
     private final JwtTokenProvider tokenProvider;
     private final CustomUserDetailsService customUserDetailsService;
 
-    public JwtAuthenticationFilter(JwtTokenProvider tokenProvider,
-                                   CustomUserDetailsService customUserDetailsService) {
+    public JwtAuthenticationFilter(JwtTokenProvider tokenProvider, CustomUserDetailsService customUserDetailsService) {
         this.tokenProvider = tokenProvider;
         this.customUserDetailsService = customUserDetailsService;
     }
 
     @Override
-    protected void doFilterInternal(
-            HttpServletRequest request,
-            HttpServletResponse response,
-            FilterChain filterChain
-    ) throws ServletException, IOException {
-
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+            throws ServletException, IOException {
         try {
-
             String jwt = getJWTfromRequest(request);
-
-
             if (StringUtils.hasText(jwt) && tokenProvider.validateToken(jwt)) {
                 Long userId = tokenProvider.getUserIdFromJWT(jwt);
-
-
                 var userDetails = customUserDetailsService.loadUserById(userId);
-
-
                 UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(
-                                userDetails, null, userDetails.getAuthorities()
-                        );
-
-                authentication.setDetails(
-                        new WebAuthenticationDetailsSource().buildDetails(request)
-                );
-
-
+                        new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             } else {
-
                 SecurityContextHolder.clearContext();
             }
         } catch (UsernameNotFoundException ex) {
-
-            logger.warn("JWT Auth: user not found -> " + ex.getMessage());
             SecurityContextHolder.clearContext();
         } catch (JwtException ex) {
-
-            logger.warn("JWT Auth: invalid token -> " + ex.getMessage());
             SecurityContextHolder.clearContext();
         } catch (Exception ex) {
-            logger.warn("JWT Auth: unexpected error -> " + ex.getMessage(), ex);
             SecurityContextHolder.clearContext();
         }
-
-
         filterChain.doFilter(request, response);
     }
 

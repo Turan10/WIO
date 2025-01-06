@@ -64,7 +64,8 @@ public class CompanyService {
                 companyDto.getAdminEmail(),
                 companyDto.getAdminPassword()
         );
-        userRepository.flush();  // ensure ID is generated
+        userRepository.flush();
+        savedCompany.getUsers().add(adminUser);
 
 
         String adminToken = jwtTokenProvider.generateToken(adminUser);

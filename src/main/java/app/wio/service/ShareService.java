@@ -5,6 +5,7 @@ import app.wio.dto.response.ShareResponseDto;
 import app.wio.entity.*;
 import app.wio.exception.ResourceNotFoundException;
 import app.wio.repository.BookingRepository;
+import app.wio.repository.ShareBookingRepository;
 import app.wio.repository.ShareRepository;
 import app.wio.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,14 +23,19 @@ public class ShareService {
     private final ShareRepository shareRepository;
     private final UserRepository userRepository;
     private final BookingRepository bookingRepository;
+    private final ShareBookingRepository shareBookingRepository;
 
     @Autowired
-    public ShareService(ShareRepository shareRepository,
-                        UserRepository userRepository,
-                        BookingRepository bookingRepository) {
+    public ShareService(
+            ShareRepository shareRepository,
+            UserRepository userRepository,
+            BookingRepository bookingRepository,
+            ShareBookingRepository shareBookingRepository
+    ) {
         this.shareRepository = shareRepository;
         this.userRepository = userRepository;
         this.bookingRepository = bookingRepository;
+        this.shareBookingRepository = shareBookingRepository;
     }
 
     @Transactional
@@ -39,10 +45,8 @@ public class ShareService {
 
         List<Long> bookingIds = dto.getBookingIds();
         LocalDate maxDate = LocalDate.now();
-
         if (!bookingIds.isEmpty()) {
             List<Booking> sharedBookings = bookingRepository.findAllById(bookingIds);
-
             Optional<LocalDate> possibleMax = sharedBookings.stream()
                     .map(Booking::getDate)
                     .max(LocalDate::compareTo);
@@ -51,18 +55,29 @@ public class ShareService {
             }
         }
 
+
         Share share = new Share();
         share.setSenderId(senderId);
         share.setRecipientId(dto.getRecipientId());
-        share.setBookingIdsCsv(bookingIds.stream()
-                .map(Object::toString)
-                .collect(Collectors.joining(",")));
         share.setMessage(dto.getMessage());
         share.setCreatedAt(LocalDateTime.now());
         share.setReadAt(null);
         share.setMaxBookingDate(maxDate);
-
+        // Bemærk, shareBookings-listen er tom lige nu
         Share saved = shareRepository.save(share);
+
+        // Opret ShareBooking-rækker for hver booking
+        for (Long bookingId : bookingIds) {
+            Booking booking = bookingRepository.findById(bookingId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Booking not found (ID=" + bookingId + ")"));
+
+            ShareBooking sb = new ShareBooking(saved, booking);
+            shareBookingRepository.save(sb);
+            // Tilføj til share-objektets liste i memory, hvis du vil have en fuldverdig referencesynkronisering
+            saved.getShareBookings().add(sb);
+        }
+
+        // Returner en DTO
         return toDto(saved);
     }
 
@@ -80,7 +95,6 @@ public class ShareService {
         if (!share.getRecipientId().equals(recipientId)) {
             throw new ResourceNotFoundException("Not your share to read");
         }
-
         if (share.getReadAt() == null) {
             share.setReadAt(LocalDateTime.now());
             shareRepository.save(share);
@@ -88,15 +102,14 @@ public class ShareService {
         return toDto(share);
     }
 
+
     @Transactional
     public ShareResponseDto markShareAsUnread(Long shareId, Long recipientId) {
         Share share = shareRepository.findById(shareId)
                 .orElseThrow(() -> new ResourceNotFoundException("Share not found"));
-
         if (!share.getRecipientId().equals(recipientId)) {
             throw new ResourceNotFoundException("Not your share to mark unread");
         }
-
         if (share.getReadAt() != null) {
             share.setReadAt(null);
             shareRepository.save(share);
@@ -104,14 +117,13 @@ public class ShareService {
         return toDto(share);
     }
 
+    // -- Hjælpe-metode til at bygge en ShareResponseDto --
     private ShareResponseDto toDto(Share s) {
-        // parse booking IDs from CSV
-        List<Long> bookingIds = new ArrayList<>();
-        if (s.getBookingIdsCsv() != null && !s.getBookingIdsCsv().trim().isEmpty()) {
-            bookingIds = Arrays.stream(s.getBookingIdsCsv().split(","))
-                    .map(Long::valueOf)
-                    .collect(Collectors.toList());
-        }
+        // Hent booking-IDs via shareBookings-listen
+        List<Long> bookingIds = s.getShareBookings().stream()
+                .map(ShareBooking::getBooking)
+                .map(Booking::getId)
+                .collect(Collectors.toList());
 
         return new ShareResponseDto(
                 s.getId(),

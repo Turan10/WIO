@@ -1,4 +1,3 @@
-/*
 package app.wio.controller;
 
 import app.wio.dto.UserRegistrationDto;
@@ -24,7 +23,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-/
 @WebMvcTest(UserController.class)
 @ActiveProfiles("test")
 @Import(TestSecurityConfig.class)
@@ -41,20 +39,24 @@ class UserControllerTest {
 
     @Test
     void testRegisterUser() throws Exception {
-        UserRegistrationDto dto = new UserRegistrationDto();
-        dto.setName("John Doe");
-        dto.setEmail("john@example.com");
-        dto.setPassword("Password123");
-        dto.setRole(UserRoleDto.EMPLOYEE);
-        dto.setInviteToken("validInviteToken");
+
+        UserRegistrationDto dto = UserRegistrationDto.builder()
+                .name("John Andersen")
+                .email("john@example.com")
+                .password("Password123")
+                .role(UserRoleDto.EMPLOYEE)
+                .oneTimeCode("SOME_VALID_CODE")
+                .build();
 
         UserResponseDto response = new UserResponseDto();
         response.setId(1L);
-        response.setName("John Doe");
+        response.setName("John Andersen");
         response.setEmail("john@example.com");
         response.setRole(UserRole.EMPLOYEE);
+        response.setToken("MOCKED_JWT_TOKEN");
 
-        Mockito.when(userService.registerUser(any())).thenReturn(response);
+        Mockito.when(userService.registerUser(any(UserRegistrationDto.class)))
+                .thenReturn(response);
 
         mockMvc.perform(post("/api/users/register")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -62,7 +64,7 @@ class UserControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(1))
                 .andExpect(jsonPath("$.email").value("john@example.com"))
-                .andExpect(jsonPath("$.role").value("EMPLOYEE"));
+                .andExpect(jsonPath("$.role").value("EMPLOYEE"))
+                .andExpect(jsonPath("$.token").value("MOCKED_JWT_TOKEN"));
     }
 }
-*/

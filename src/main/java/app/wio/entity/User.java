@@ -6,21 +6,15 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.*;
-
 import java.util.List;
 
-
 @Entity
-@Table(
-        name = "users",
-        uniqueConstraints = @UniqueConstraint(columnNames = "email")
-)
+@Table(name = "users", uniqueConstraints = @UniqueConstraint(columnNames = "email"))
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class User {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -51,14 +45,10 @@ public class User {
 
     private boolean enabled;
 
-
-    @JsonIgnore
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
-    private List<VerificationToken> verificationTokens;
-
     @JsonIgnore
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     private List<PasswordResetToken> passwordResetTokens;
+
     private String title;
     private String department;
     private String phone;

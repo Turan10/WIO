@@ -1,5 +1,3 @@
-// package app.wio.dto.response;
-
 package app.wio.dto.response;
 
 import app.wio.entity.UserRole;

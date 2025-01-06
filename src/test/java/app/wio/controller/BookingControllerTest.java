@@ -44,17 +44,19 @@ class BookingControllerTest {
         BookingRequestDto request = new BookingRequestDto();
         request.setSeatId(1L);
         request.setUserId(2L);
-        request.setDate(LocalDate.of(2024, 12, 18));
+
+        // future date
+        request.setDate(LocalDate.now().plusDays(30));
 
         BookingResponseDto response = new BookingResponseDto();
         response.setId(100L);
         response.setSeatId(1L);
         response.setUserId(2L);
         response.setDate(request.getDate());
-        // The backend uses ACTIVE as default booking status
         response.setStatus("ACTIVE");
 
-        Mockito.when(bookingService.createBooking(any(BookingRequestDto.class))).thenReturn(response);
+        Mockito.when(bookingService.createBooking(any(BookingRequestDto.class)))
+                .thenReturn(response);
 
         mockMvc.perform(post("/api/bookings/create")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -66,6 +68,7 @@ class BookingControllerTest {
 
     @Test
     void testCreateBookingUnauthorized() throws Exception {
+        // No @WithMockUser means no authentication → should be 401
         BookingRequestDto request = new BookingRequestDto();
         request.setSeatId(1L);
         request.setUserId(2L);

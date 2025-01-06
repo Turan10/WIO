@@ -24,11 +24,9 @@ public class TestSecurityConfig {
                         })
                 )
 
-                // Disable anonymous authentication
-                .anonymous(anonymous -> anonymous.disable())
-
-                // Allow registration and login without authentication
+                // Allow creation of companies and user registration/login without authentication
                 .authorizeHttpRequests(authz -> authz
+                        .requestMatchers("/api/companies/create").permitAll()
                         .requestMatchers("/api/users/register", "/api/users/login").permitAll()
                         .anyRequest().authenticated()
                 );

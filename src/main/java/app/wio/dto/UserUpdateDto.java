@@ -8,7 +8,6 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UserUpdateDto {
-
     private String name;
 
     @Email(message = "Invalid email format.")
