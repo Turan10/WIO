@@ -27,7 +27,7 @@ WIO is a Spring Boot–based RESTful API that enables organizations to manage co
 WIO provides:
 
 - Company Management: Create and manage companies (with automated admin user creation)
-- Floor Management: Create, delete, lock, or unlock floors
+- Floor Management: Create, delete, update floors
 - Seat Management: Create, update, or remove seats (with checks for future bookings)
 - User Management: Register as ADMIN or EMPLOYEE (employee requires a one-time code), log in, update profile, reset passwords, etc.
 - Booking Management: Reserve seats for specific dates, cancel bookings, track seat availability, and handle seat conflicts
@@ -49,14 +49,14 @@ WIO provides:
 ## 3. Technology Stack
 
 - Java 17+
-- Spring Boot 3 (Web, Security, Data JPA, Scheduling, Validation, Mail)
+- Spring Boot 3 (Web, Security, Data JPA, Scheduling, Validation)
 - Spring Data JPA + Hibernate for ORM
 - PostgreSQL as the main database
 - JWT (jjwt) for authentication and authorization
 - MapStruct for object mapping
 - Lombok to reduce boilerplate
 - Gradle as the build tool
-- JUnit 5, Mockito, Testcontainers for testing
+- JUnit 5, Mockito for testing
 
 ## 4. Prerequisites
 
@@ -69,7 +69,7 @@ WIO provides:
 1. Clone the repository:
 ```bash
 git clone https://github.com/Turan10/wio.git
-cd wio-api
+cd wio
 ```
 
 2. Configure PostgreSQL:
@@ -93,8 +93,8 @@ server.port=8080
 
 # PostgreSQL
 spring.datasource.url=jdbc:postgresql://localhost:5433/WIO
-spring.datasource.username=postgres
-spring.datasource.password=postgres
+spring.datasource.username=your-username
+spring.datasource.password=your-password
 
 # JWT
 app.jwt.secret=EHGxxE...
